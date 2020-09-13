@@ -73,7 +73,7 @@ void create_triangle(GLuint &vbo, GLuint &vao, GLuint &ebo)
 int display_w, display_h;
 
 const float ZOOM_MIN = 2 / CANVAS_SIZE;
-const float ZOOM_MAX = 5;
+const float ZOOM_MAX = 20;
 const float ZOOM_STEP = 0.1;
 float zoom = 1.0;
 
@@ -87,8 +87,18 @@ void crop_translation() {
 }
 
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
+    float old_zoom = zoom;
     zoom += ZOOM_STEP * yoffset;
     crop_interval(zoom, ZOOM_MIN, ZOOM_MAX);
+    float zoom_diff = zoom - old_zoom;
+
+    float xdiff = (2 / old_zoom) * (cursor_position[0] / display_w - 0.5);
+    float ydiff = (2 / old_zoom) * (cursor_position[1] / display_h - 0.5);
+
+    translation[0] -= xdiff * (1 - old_zoom / zoom);
+    translation[1] += ydiff * (1 - old_zoom / zoom);
+
+    crop_translation();
 }
 
 void mouse_moved(GLFWwindow *window, double xoffset, double yoffset) {
