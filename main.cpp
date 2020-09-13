@@ -33,13 +33,13 @@ void create_triangle(GLuint &vbo, GLuint &vao, GLuint &ebo)
    float mult = CANVAS_SIZE / 2;
    float triangle_vertices[] = {
        -mult, -mult, 0.0f, // position vertex 1
-       4 * mult, 0.0f, 0.0f, // color vertex 1
+       4 * mult, 0.0f, 0.0f, // coord vertex 1
 
-       -mult, mult * 3, 0.0f, // position vertex 1
-       0.0f, 4 * mult, 0.0f, // color vertex 1
+       -mult, mult * 3, 0.0f, // position vertex 2
+       0.0f, 4 * mult, 0.0f, // coord vertex 2
 
-       mult * 3, -mult, 0.0f, // position vertex 1
-       0.0f, 0.0f, 4 * mult, // color vertex 1
+       mult * 3, -mult, 0.0f, // position vertex 3
+       0.0f, 0.0f, 4 * mult, // coord vertex 3
    };
    unsigned int triangle_indices[] = {
        0, 1, 2 };
