@@ -128,7 +128,7 @@ int main(int, char **)
       // GUI
       ImGui::Begin("Triangle Position/Color");
       static float zoom = 1.0;
-      ImGui::SliderFloat("zoom", &zoom, 0,   3);
+      ImGui::SliderFloat("zoom", &zoom, 2 / CANVAS_SIZE,   5);
       static float translation[] = { 0.0, 0.0 };
       ImGui::SliderFloat2("position", translation, -1.0, 1.0);
       static float color[4] = { 1.0f,1.0f,1.0f,1.0f };
