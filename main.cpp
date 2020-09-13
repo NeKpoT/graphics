@@ -70,14 +70,21 @@ void create_triangle(GLuint &vbo, GLuint &vao, GLuint &ebo)
    glBindVertexArray(0);
 }
 
+int display_w, display_h;
+
 const float ZOOM_MIN = 2 / CANVAS_SIZE;
 const float ZOOM_MAX = 5;
 const float ZOOM_STEP = 0.1;
 float zoom = 1.0;
 
 float cursor_position[] = { 0.0, 0.0 };
-float cursor_movement[] = { 0.0, 0.0 };
 static float translation[] = { 0.0, 0.0 };
+
+void crop_translation() {
+    const float translation_max = CANVAS_SIZE / 2 - 1 / zoom;
+    crop_abs(translation[0], translation_max);
+    crop_abs(translation[1], translation_max);
+}
 
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
     zoom += ZOOM_STEP * yoffset;
@@ -86,8 +93,9 @@ void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
 
 void mouse_moved(GLFWwindow *window, double xoffset, double yoffset) {
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)) {
-        cursor_movement[0] = xoffset;
-        cursor_movement[1] = yoffset;
+        translation[0] += 2 * xoffset / zoom / display_w;
+        translation[1] -= 2 * yoffset / zoom / display_h;
+        crop_translation();
     }
 }
 
@@ -147,11 +155,11 @@ int main(int, char **) {
    glfwSetCursorPosCallback(window, &mouse_callback);
 
    while (!glfwWindowShouldClose(window)) {
-       glfwPollEvents();
 
        // Get windows size
-       int display_w, display_h;
        glfwGetFramebufferSize(window, &display_w, &display_h);
+
+       glfwPollEvents();
 
        // Set viewport to fill the whole window area
        glViewport(0, 0, display_w, display_h);
@@ -165,13 +173,6 @@ int main(int, char **) {
        ImGui_ImplGlfw_NewFrame();
        ImGui::NewFrame();
 
-       translation[0] += 2 * cursor_movement[0] / zoom / display_w;
-       translation[1] -= 2 * cursor_movement[1] / zoom / display_h;
-       cursor_movement[0] = cursor_movement[1] = 0;
-
-       const float translation_max = CANVAS_SIZE / 2 - 1 / zoom;
-       crop_abs(translation[0], translation_max);
-       crop_abs(translation[1], translation_max);
 
        // GUI
        ImGui::Begin("Triangle Position/Color");
