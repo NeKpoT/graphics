@@ -19,23 +19,27 @@
 
 #include "opengl_shader.h"
 
-static void glfw_error_callback(int error, const char *description)
-{
-   std::cerr << fmt::format("Glfw Error {}: {}\n", error, description);
+const float MAXC_C_ABS = 1;
+const float CANVAS_SIZE = (1 + sqrt(1 + 4 * sqrt(2) * MAXC_C_ABS)) * 1.05;
+
+static void
+glfw_error_callback(int error, const char *description) {
+    std::cerr << fmt::format("Glfw Error {}: {}\n", error, description);
 }
 
 void create_triangle(GLuint &vbo, GLuint &vao, GLuint &ebo)
 {
    // create the triangle
+   float mult = CANVAS_SIZE / 2;
    float triangle_vertices[] = {
-       0.0f, 0.25f, 0.0f,	// position vertex 1
-       1.0f, 0.0f, 0.0f,	 // color vertex 1
+       -mult, -mult, 0.0f, // position vertex 1
+       4 * mult, 0.0f, 0.0f, // color vertex 1
 
-       0.25f, -0.25f, 0.0f,  // position vertex 1
-       0.0f, 1.0f, 0.0f,	 // color vertex 1
+       -mult, mult * 3, 0.0f, // position vertex 1
+       0.0f, 4 * mult, 0.0f, // color vertex 1
 
-       -0.25f, -0.25f, 0.0f, // position vertex 1
-       0.0f, 0.0f, 1.0f,	 // color vertex 1
+       mult * 3, -mult, 0.0f, // position vertex 1
+       0.0f, 0.0f, 4 * mult, // color vertex 1
    };
    unsigned int triangle_indices[] = {
        0, 1, 2 };
@@ -89,7 +93,7 @@ int main(int, char **)
    create_triangle(vbo, vao, ebo);
 
    // init shader
-   shader_t triangle_shader("simple-shader.vs", "simple-shader.fs");
+   shader_t triangle_shader("assets/simple-shader.vs", "assets/simple-shader.fs");
 
    // Setup GUI context
    IMGUI_CHECKVERSION();
@@ -123,17 +127,24 @@ int main(int, char **)
 
       // GUI
       ImGui::Begin("Triangle Position/Color");
-      static float rotation = 0.0;
-      ImGui::SliderFloat("rotation", &rotation, 0, 2 * glm::pi<float>());
+      static float zoom = 1.0;
+      ImGui::SliderFloat("zoom", &zoom, 0,   3);
       static float translation[] = { 0.0, 0.0 };
       ImGui::SliderFloat2("position", translation, -1.0, 1.0);
       static float color[4] = { 1.0f,1.0f,1.0f,1.0f };
       ImGui::ColorEdit3("color", color);
+      static float c[] = { -0.8f, 0.156f };
+      ImGui::SliderFloat2("c", c, -MAXC_C_ABS, MAXC_C_ABS);
+      static int iterations = 15;
+      ImGui::SliderInt("iterations", &iterations, 1, 50);
       ImGui::End();
 
       // Pass the parameters to the shader as uniforms
-      triangle_shader.set_uniform("u_rotation", rotation);
+      triangle_shader.set_uniform("u_zoom", zoom);
+      triangle_shader.set_uniform("u_canvassize", CANVAS_SIZE);
+      triangle_shader.set_uniform("u_iterations", iterations);
       triangle_shader.set_uniform("u_translation", translation[0], translation[1]);
+      triangle_shader.set_uniform("u_c", c[0], c[1]);
       float const time_from_start = (float)(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start_time).count() / 1000.0);
       triangle_shader.set_uniform("u_time", time_from_start);
       triangle_shader.set_uniform("u_color", color[0], color[1], color[2]);
