@@ -6,6 +6,7 @@
 
 #include <GL/glew.h>
 
+
 // Imgui + bindings
 #include "imgui.h"
 #include "bindings/imgui_impl_glfw.h"
@@ -18,6 +19,16 @@
 #include <glm/gtc/constants.hpp>
 
 #include "opengl_shader.h"
+
+template <typename T>
+void crop_interval(T &x, T minv, T maxv) {
+    x = std::max(minv, std::min(maxv, x));
+}
+
+template <typename T>
+void crop_abs(T &x, T max_abs) {
+    crop_interval(x, -max_abs, max_abs);
+}
 
 const float MAXC_C_ABS = 1;
 const float CANVAS_SIZE = (1 + sqrt(1 + 4 * sqrt(2) * MAXC_C_ABS)) * 1.05;
@@ -59,8 +70,34 @@ void create_triangle(GLuint &vbo, GLuint &vao, GLuint &ebo)
    glBindVertexArray(0);
 }
 
-int main(int, char **)
-{
+const float ZOOM_MIN = 2 / CANVAS_SIZE;
+const float ZOOM_MAX = 5;
+const float ZOOM_STEP = 0.1;
+float zoom = 1.0;
+
+float cursor_position[] = { 0.0, 0.0 };
+float cursor_movement[] = { 0.0, 0.0 };
+static float translation[] = { 0.0, 0.0 };
+
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
+    zoom += ZOOM_STEP * yoffset;
+    crop_interval(zoom, ZOOM_MIN, ZOOM_MAX);
+}
+
+void mouse_moved(GLFWwindow *window, double xoffset, double yoffset) {
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)) {
+        cursor_movement[0] = xoffset;
+        cursor_movement[1] = yoffset;
+    }
+}
+
+void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
+    mouse_moved(window, xpos - cursor_position[0], ypos - cursor_position[1]);
+    cursor_position[0] = xpos;
+    cursor_position[1] = ypos;
+}
+
+int main(int, char **) {
    // Use GLFW to create a simple window
    glfwSetErrorCallback(glfw_error_callback);
    if (!glfwInit())
@@ -105,66 +142,75 @@ int main(int, char **)
 
    auto const start_time = std::chrono::steady_clock::now();
 
-   while (!glfwWindowShouldClose(window))
-   {
-      glfwPollEvents();
 
-      // Get windows size
-      int display_w, display_h;
-      glfwGetFramebufferSize(window, &display_w, &display_h);
+   glfwSetScrollCallback(window, &scroll_callback);
+   glfwSetCursorPosCallback(window, &mouse_callback);
 
-      // Set viewport to fill the whole window area
-      glViewport(0, 0, display_w, display_h);
+   while (!glfwWindowShouldClose(window)) {
+       glfwPollEvents();
 
-      // Fill background with solid color
-      glClearColor(0.30f, 0.55f, 0.60f, 1.00f);
-      glClear(GL_COLOR_BUFFER_BIT);
+       // Get windows size
+       int display_w, display_h;
+       glfwGetFramebufferSize(window, &display_w, &display_h);
 
-      // Gui start new frame
-      ImGui_ImplOpenGL3_NewFrame();
-      ImGui_ImplGlfw_NewFrame();
-      ImGui::NewFrame();
+       // Set viewport to fill the whole window area
+       glViewport(0, 0, display_w, display_h);
 
-      // GUI
-      ImGui::Begin("Triangle Position/Color");
-      static float zoom = 1.0;
-      ImGui::SliderFloat("zoom", &zoom, 2 / CANVAS_SIZE,   5);
-      static float translation[] = { 0.0, 0.0 };
-      ImGui::SliderFloat2("position", translation, -1.0, 1.0);
-      static float color[4] = { 1.0f,1.0f,1.0f,1.0f };
-      ImGui::ColorEdit3("color", color);
-      static float c[] = { -0.8f, 0.156f };
-      ImGui::SliderFloat2("c", c, -MAXC_C_ABS, MAXC_C_ABS);
-      static int iterations = 15;
-      ImGui::SliderInt("iterations", &iterations, 1, 50);
-      ImGui::End();
+       // Fill background with solid color
+       glClearColor(0.30f, 0.55f, 0.60f, 1.00f);
+       glClear(GL_COLOR_BUFFER_BIT);
 
-      // Pass the parameters to the shader as uniforms
-      triangle_shader.set_uniform("u_zoom", zoom);
-      triangle_shader.set_uniform("u_canvassize", CANVAS_SIZE);
-      triangle_shader.set_uniform("u_iterations", iterations);
-      triangle_shader.set_uniform("u_translation", translation[0], translation[1]);
-      triangle_shader.set_uniform("u_c", c[0], c[1]);
-      float const time_from_start = (float)(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start_time).count() / 1000.0);
-      triangle_shader.set_uniform("u_time", time_from_start);
-      triangle_shader.set_uniform("u_color", color[0], color[1], color[2]);
+       // Gui start new frame
+       ImGui_ImplOpenGL3_NewFrame();
+       ImGui_ImplGlfw_NewFrame();
+       ImGui::NewFrame();
 
-      // Bind triangle shader
-      triangle_shader.use();
-      // Bind vertex array = buffers + indices
-      glBindVertexArray(vao);
-      // Execute draw call
-      glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
-      glBindVertexArray(0);
+       translation[0] += 2 * cursor_movement[0] / zoom / display_w;
+       translation[1] -= 2 * cursor_movement[1] / zoom / display_h;
+       cursor_movement[0] = cursor_movement[1] = 0;
 
-      // Generate gui render commands
-      ImGui::Render();
+       const float translation_max = CANVAS_SIZE / 2 - 1 / zoom;
+       crop_abs(translation[0], translation_max);
+       crop_abs(translation[1], translation_max);
 
-      // Execute gui render commands using OpenGL backend
-      ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+       // GUI
+       ImGui::Begin("Triangle Position/Color");
+       ImGui::SliderFloat("zoom", &zoom, ZOOM_MIN, ZOOM_MAX);
+       ImGui::SliderFloat2("position", translation, -1.0, 1.0);
+       static float color[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+       ImGui::ColorEdit3("color", color);
+       static float c[] = { -0.8f, 0.156f };
+       ImGui::SliderFloat2("c", c, -MAXC_C_ABS, MAXC_C_ABS);
+       static int iterations = 15;
+       ImGui::SliderInt("iterations", &iterations, 1, 50);
+       ImGui::End();
 
-      // Swap the backbuffer with the frontbuffer that is used for screen display
-      glfwSwapBuffers(window);
+       // Pass the parameters to the shader as uniforms
+       triangle_shader.set_uniform("u_zoom", zoom);
+       triangle_shader.set_uniform("u_canvassize", CANVAS_SIZE);
+       triangle_shader.set_uniform("u_iterations", iterations);
+       triangle_shader.set_uniform("u_translation", translation[0], translation[1]);
+       triangle_shader.set_uniform("u_c", c[0], c[1]);
+       float const time_from_start = (float)(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start_time).count() / 1000.0);
+       triangle_shader.set_uniform("u_time", time_from_start);
+       triangle_shader.set_uniform("u_color", color[0], color[1], color[2]);
+
+       // Bind triangle shader
+       triangle_shader.use();
+       // Bind vertex array = buffers + indices
+       glBindVertexArray(vao);
+       // Execute draw call
+       glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+       glBindVertexArray(0);
+
+       // Generate gui render commands
+       ImGui::Render();
+
+       // Execute gui render commands using OpenGL backend
+       ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+       // Swap the backbuffer with the frontbuffer that is used for screen display
+       glfwSwapBuffers(window);
    }
 
    // Cleanup
