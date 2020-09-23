@@ -15,12 +15,14 @@ uniform float u_canvassize;
 uniform vec3 u_color;
 uniform float u_time;
 
+uniform sampler1D u_tex;
+
 void main()
 {
     vec2 xy = v_out.position;
     // xy.x -=  0.5 * u_canvassize;
     // xy.y -=  0.5 * u_canvassize;
-    o_frag_color = vec4(0.0, 0.3, 0.0, 1.0);
+    o_frag_color = vec4(0.0, 0.0, 0.0, 1.0);
 
     float R = 0.5 + sqrt(1 + 4*length(u_c)) / 2;
     vec2 xy2;
@@ -35,6 +37,8 @@ void main()
         }
     }
     if (cutoff < u_iterations) {
-        o_frag_color = vec4(1.0, 0.0, 1.0, 1.0) * cutoff / u_iterations;
+        // o_frag_color = vec4(1.0, 0.0, 1.0, 1.0) * cutoff / u_iterations;
+        vec3 texture = texture(u_tex, cutoff * 1.0 / u_iterations * 0.99 + 0.01).rgb;
+        o_frag_color = vec4(texture, 1.0);
     }
 }

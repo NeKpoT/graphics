@@ -6,6 +6,9 @@
 
 #include <GL/glew.h>
 
+// STB, load images
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 // Imgui + bindings
 #include "imgui.h"
@@ -73,7 +76,7 @@ void create_triangle(GLuint &vbo, GLuint &vao, GLuint &ebo)
 int display_w, display_h;
 
 const float ZOOM_MIN = 1 / MAX_CANVAS_SIZE;
-const float ZOOM_MAX = 20;
+const float ZOOM_MAX = 80;
 const float ZOOM_STEP = 0.1;
 float zoom = 1.0;
 
@@ -113,6 +116,31 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
     mouse_moved(window, xpos - cursor_position[0], ypos - cursor_position[1]);
     cursor_position[0] = xpos;
     cursor_position[1] = ypos;
+}
+
+GLuint getTexure() {
+
+    int width = 0, height = 0, channels;
+    unsigned char *image = stbi_load("assets/gradient.bmp",
+                                     &width,
+                                     &height,
+                                     &channels,
+                                     STBI_rgb);
+    
+    if (height != 1) {
+        std::cout << "Texture is not 1D: " << height << ' ' << width << std::endl;
+        exit(123);
+    }
+
+    GLuint texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_1D, texture);
+    glTexImage1D(GL_TEXTURE_1D, 0, GL_RGB8, width, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+    glGenerateMipmap(GL_TEXTURE_1D);
+
+    stbi_image_free(image);
+
+    return texture;
 }
 
 int main(int, char **) {
@@ -164,6 +192,8 @@ int main(int, char **) {
    glfwSetScrollCallback(window, &scroll_callback);
    glfwSetCursorPosCallback(window, &mouse_callback);
 
+   GLuint texture = getTexure();
+
    while (!glfwWindowShouldClose(window)) {
 
        // Get windows size
@@ -193,7 +223,7 @@ int main(int, char **) {
        static float c[] = { -0.8f, 0.156f };
        ImGui::SliderFloat2("c", c, -MAXC_C_ABS, MAXC_C_ABS);
        static int iterations = 15;
-       ImGui::SliderInt("iterations", &iterations, 1, 50);
+       ImGui::SliderInt("iterations", &iterations, 1, 150);
        ImGui::End();
 
        // Pass the parameters to the shader as uniforms
@@ -205,6 +235,12 @@ int main(int, char **) {
        float const time_from_start = (float)(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start_time).count() / 1000.0);
        triangle_shader.set_uniform("u_time", time_from_start);
        triangle_shader.set_uniform("u_color", color[0], color[1], color[2]);
+       triangle_shader.set_uniform("u_tex", int(0));
+
+       glActiveTexture(GL_TEXTURE0);
+       glBindTexture(GL_TEXTURE_2D, texture);
+       glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+       glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
        // Bind triangle shader
        triangle_shader.use();
