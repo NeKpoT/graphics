@@ -31,7 +31,7 @@ void crop_abs(T &x, T max_abs) {
 }
 
 const float MAXC_C_ABS = 1;
-const float CANVAS_SIZE = (1 + sqrt(1 + 4 * sqrt(2) * MAXC_C_ABS)) * 1.05;
+const float MAX_CANVAS_SIZE = (1 + sqrt(1 + 4 * sqrt(2) * MAXC_C_ABS)) * 0.95;
 
 static void
 glfw_error_callback(int error, const char *description) {
@@ -41,16 +41,16 @@ glfw_error_callback(int error, const char *description) {
 void create_triangle(GLuint &vbo, GLuint &vao, GLuint &ebo)
 {
    // create the triangle
-   float mult = CANVAS_SIZE / 2;
+   float mult = 1;
    float triangle_vertices[] = {
        -mult, -mult, 0.0f, // position vertex 1
-       4 * mult, 0.0f, 0.0f, // coord vertex 1
+       2 * mult, 0.0f, 0.0f, // coord vertex 1
 
-       -mult, mult * 3, 0.0f, // position vertex 2
-       0.0f, 4 * mult, 0.0f, // coord vertex 2
+       mult * 3, -mult, 0.0f, // position vertex 2
+       0.0f, 2 * mult, 0.0f, // coord vertex 2
 
-       mult * 3, -mult, 0.0f, // position vertex 3
-       0.0f, 0.0f, 4 * mult, // coord vertex 3
+       -mult, mult * 3, 0.0f, // position vertex 3
+       0.0f, 0.0f, 2 * mult, // coord vertex 3
    };
    unsigned int triangle_indices[] = {
        0, 1, 2 };
@@ -72,7 +72,7 @@ void create_triangle(GLuint &vbo, GLuint &vao, GLuint &ebo)
 
 int display_w, display_h;
 
-const float ZOOM_MIN = 2 / CANVAS_SIZE;
+const float ZOOM_MIN = 1 / MAX_CANVAS_SIZE;
 const float ZOOM_MAX = 20;
 const float ZOOM_STEP = 0.1;
 float zoom = 1.0;
@@ -81,7 +81,7 @@ float cursor_position[] = { 0.0, 0.0 };
 static float translation[] = { 0.0, 0.0 };
 
 void crop_translation() {
-    const float translation_max = CANVAS_SIZE / 2 - 1 / zoom;
+    const float translation_max = MAX_CANVAS_SIZE / 1 - 1 / zoom;
     crop_abs(translation[0], translation_max);
     crop_abs(translation[1], translation_max);
 }
@@ -92,19 +92,19 @@ void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
     crop_interval(zoom, ZOOM_MIN, ZOOM_MAX);
     float zoom_diff = zoom - old_zoom;
 
-    float xdiff = (2 / old_zoom) * (cursor_position[0] / display_w - 0.5);
-    float ydiff = (2 / old_zoom) * (cursor_position[1] / display_h - 0.5);
+    float xdiff = (1 / old_zoom) * (cursor_position[0] / display_w - 0.5);
+    float ydiff = (1 / old_zoom) * (cursor_position[1] / display_h - 0.5);
 
-    translation[0] -= xdiff * (1 - old_zoom / zoom);
-    translation[1] += ydiff * (1 - old_zoom / zoom);
+    translation[0] += xdiff * (1 - old_zoom / zoom);
+    translation[1] -= ydiff * (1 - old_zoom / zoom);
 
     crop_translation();
 }
 
 void mouse_moved(GLFWwindow *window, double xoffset, double yoffset) {
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)) {
-        translation[0] += 2 * xoffset / zoom / display_w;
-        translation[1] -= 2 * yoffset / zoom / display_h;
+        translation[0] -= xoffset / zoom / display_w;
+        translation[1] += yoffset / zoom / display_h;
         crop_translation();
     }
 }
@@ -198,7 +198,7 @@ int main(int, char **) {
 
        // Pass the parameters to the shader as uniforms
        triangle_shader.set_uniform("u_zoom", zoom);
-       triangle_shader.set_uniform("u_canvassize", CANVAS_SIZE);
+       triangle_shader.set_uniform("u_canvassize", MAX_CANVAS_SIZE);
        triangle_shader.set_uniform("u_iterations", iterations);
        triangle_shader.set_uniform("u_translation", translation[0], translation[1]);
        triangle_shader.set_uniform("u_c", c[0], c[1]);

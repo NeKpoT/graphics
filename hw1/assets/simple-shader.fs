@@ -18,8 +18,8 @@ uniform float u_time;
 void main()
 {
     vec2 xy = v_out.position;
-    xy.x -=  0.5 * u_canvassize;
-    xy.y -=  0.5 * u_canvassize;
+    // xy.x -=  0.5 * u_canvassize;
+    // xy.y -=  0.5 * u_canvassize;
     o_frag_color = vec4(0.0, 0.3, 0.0, 1.0);
 
     float R = 0.5 + sqrt(1 + 4*length(u_c)) / 2;

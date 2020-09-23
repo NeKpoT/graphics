@@ -14,11 +14,11 @@ uniform vec2 u_translation;
 
 void main()
 {
-    vec2 rotated_pos;
-    rotated_pos.x = (u_translation.x + in_position.x) * u_zoom;
-    rotated_pos.y = (u_translation.y + in_position.y) * u_zoom;
+    vec2 zoomed_pos;
+    zoomed_pos.x = u_translation.x + (in_coord.y - 0.5) * (1 / u_zoom);
+    zoomed_pos.y = u_translation.y + (in_coord.z - 0.5) * (1 / u_zoom);
 
-    v_out.position = in_coord.yz;
+    v_out.position = zoomed_pos;
 
-    gl_Position = vec4(rotated_pos.x, rotated_pos.y, in_position.z, 1.0);
+    gl_Position = vec4(in_position.x, in_position.y, in_position.z, 1.0);
 }
