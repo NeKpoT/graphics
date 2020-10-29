@@ -203,11 +203,11 @@ static float pitch;
 static float rotation;
 
 const float SCROLL_STEP = 0.05;
-const float MOUSE_SENS = 0.01;
+const float MOUSE_SENS = 0.005;
 static float radius = 1;
 
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
-    radius += yoffset * SCROLL_STEP;
+    radius -= yoffset * SCROLL_STEP;
     crop_interval(radius, 0.1f, 10.0f);
 }
 
@@ -216,7 +216,10 @@ void mouse_moved(GLFWwindow *window, double xoffset, double yoffset) {
         rotation += xoffset * MOUSE_SENS;
         pitch += yoffset * MOUSE_SENS;
         crop_abs(pitch, 0.5f);
-        rotation -= int(rotation);
+        if (rotation > 2)
+            rotation -= 2;
+        if (rotation < 0)
+            rotation += 2;
     }
 }
 
@@ -316,7 +319,7 @@ int main(int, char **) {
                 glm::mat4(1), 
                 pitch * glm::pi<float>(), 
                 glm::vec3(1, 0, 0)) * glm::scale(glm::vec3(1, 1, 1)),
-            glm::radians(rotation * 60), 
+            rotation * glm::pi<float>(), 
             glm::vec3(0, 1, 0)
         );
         auto view = glm::lookAt<float>(glm::vec3(0, 0, radius), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
