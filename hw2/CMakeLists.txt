@@ -31,8 +31,6 @@ add_executable( opengl-imgui-sample
 add_custom_command(TARGET opengl-imgui-sample
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/assets ${PROJECT_BINARY_DIR}/assets
-    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/assets/bonsai/bonsai-tree.obj ${PROJECT_BINARY_DIR}
-    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/assets/bonsai/bonsai-tree.mtl ${PROJECT_BINARY_DIR}
     COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/assets/reflex_camera/reflex_camera.obj ${PROJECT_BINARY_DIR}
     COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/assets/reflex_camera/reflex_camera.mtl ${PROJECT_BINARY_DIR}
 )
