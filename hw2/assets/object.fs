@@ -15,13 +15,12 @@ uniform samplerCube u_cube;
 uniform sampler2D u_tex;
 
 uniform vec3 u_cam;
-uniform float u_mirror_a;
-uniform float u_prism_a;
+uniform float u_texture_a;
 uniform float u_prism_n;
 
 void main()
 {
-    float texture_a = 1 - u_mirror_a - u_prism_a;
+    float optics_a = 1 - u_texture_a;
     
 
     vec3 pc = normalize(u_cam - v_out.position);
@@ -37,8 +36,13 @@ void main()
     float cosT = sqrt(1 - sinT2);
     // n * cosT + (v - n') * eta
     vec3 prism = texture(u_cube, -(norm * cosT - pc_sized_norm * u_prism_n + pc * u_prism_n)).rgb;
+
+    float r_ref = (cosI * u_prism_n - cosT) / (cosI * u_prism_n + cosT);
+    r_ref = r_ref * r_ref;
+    float r_prism = 1 - r_ref;
     
     vec3 texture = texture(u_tex, v_out.texcoord).rgb;
 
-    o_frag_color = vec4(mirror * u_mirror_a + prism * u_prism_a + texture * texture_a, 1.0);
+    o_frag_color = vec4((mirror * r_ref + prism * r_prism) * (1 - u_texture_a) + texture * u_texture_a, 1.0);
+    // o_frag_color = vec4(r_prism * vec3(1, 1, 1), 1);
 }

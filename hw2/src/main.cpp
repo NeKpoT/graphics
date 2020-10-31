@@ -300,12 +300,8 @@ int main(int, char **) {
         static float prism_n = 0.8;
         ImGui::SliderFloat("prism_n", &prism_n, 0.1, 1);
 
-        static float mirror_w = 1;
-        static float prism_w = 1;
-        static float texture_w = 1;         
-        ImGui::SliderFloat("mirror alpha", &mirror_w, 1, 10.0);
-        ImGui::SliderFloat("prism alpha", &prism_w, 1, 10.0);
-        ImGui::SliderFloat("texture alpha", &texture_w, 1, 10.0);
+        static float texture_a = 0.2;
+        ImGui::SliderFloat("texture alpha", &texture_a, 0, 1);
 
         static float color[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
         ImGui::ColorEdit3("color", color);
@@ -359,9 +355,7 @@ int main(int, char **) {
             object_shader.set_uniform("u_cube", int(1));
             object_shader.set_uniform("u_tex", int(0));
 
-            float all_w = mirror_w + prism_w + texture_w;
-            object_shader.set_uniform("u_mirror_a", mirror_w / all_w);
-            object_shader.set_uniform("u_prism_a", prism_w / all_w);
+            object_shader.set_uniform("u_texture_a", texture_a);
 
             object_shader.set_uniform("u_prism_n", prism_n);
 
