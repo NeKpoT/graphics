@@ -17,6 +17,19 @@ uniform sampler2D u_tex;
 uniform vec3 u_cam;
 uniform float u_texture_a;
 uniform float u_prism_n;
+uniform bool u_tex_gamma_correct;
+uniform bool u_blend_gamma_correct;
+
+const float GAMMA = 2.2;
+const float UNGAMMA = 1 / GAMMA;
+
+vec3 gamma(vec3 v) {
+    return pow(v, vec3(GAMMA, GAMMA, GAMMA));
+}
+
+vec3 ungamma(vec3 v) {
+    return pow(v, vec3(UNGAMMA, UNGAMMA, UNGAMMA));
+}
 
 void main()
 {
@@ -43,6 +56,23 @@ void main()
     
     vec3 texture = texture(u_tex, v_out.texcoord).rgb;
 
-    o_frag_color = vec4((mirror * r_ref + prism * r_prism) * (1 - u_texture_a) + texture * u_texture_a, 1.0);
+    if (u_tex_gamma_correct) {
+        texture = gamma(texture);
+    }
+
+    vec3 color_out;
+
+    if (u_blend_gamma_correct) {
+        mirror = ungamma(mirror);
+        prism = ungamma(prism);
+        texture = ungamma(texture);
+    }
+    color_out = (mirror * r_ref + prism * r_prism) * (1 - u_texture_a) + texture * u_texture_a;
+    if (u_blend_gamma_correct) {
+        color_out = gamma(color_out);
+    }
+    
+
+    o_frag_color = vec4(color_out, 1.0);
     // o_frag_color = vec4(r_prism * vec3(1, 1, 1), 1);
 }

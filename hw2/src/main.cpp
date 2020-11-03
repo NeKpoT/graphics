@@ -308,6 +308,13 @@ int main(int, char **) {
 
         static float color[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
         ImGui::ColorEdit3("color", color);
+
+        static bool texture_gamma_correction = true;
+        ImGui::Checkbox("texture gamma correction", &texture_gamma_correction);
+
+        static bool blend_gamma_correction = true;
+        ImGui::Checkbox("blend gamma correction", &blend_gamma_correction);
+
         ImGui::End();
 
         // Pass the parameters to the shader as uniforms
@@ -360,7 +367,6 @@ int main(int, char **) {
         object_shader.use();
         for (Mesh &mesh : meshes) {
 
-
             object_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
             object_shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
 
@@ -370,6 +376,9 @@ int main(int, char **) {
             object_shader.set_uniform("u_texture_a", texture_a);
 
             object_shader.set_uniform("u_prism_n", prism_n);
+
+            object_shader.set_uniform("u_tex_gamma_correct", texture_gamma_correction);
+            object_shader.set_uniform("u_blend_gamma_correct", blend_gamma_correction);
 
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, mesh.mat.get_texture());
