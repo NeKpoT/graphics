@@ -65,6 +65,8 @@ void create_skybox(GLuint &vbo, GLuint &vao, GLuint &ebo) {
             }
         }
     }
+    for (auto& c : skybox_vertices)
+        c *= 16;
 
     std::vector<unsigned int> indices;
     unsigned int mults[] = { 1, 2, 4 };
@@ -257,6 +259,7 @@ int main(int, char **) {
     // init shaders
     shader_t skybox_shader("assets/skybox.vs", "assets/skybox.fs");
     shader_t object_shader("assets/object.vs", "assets/object.fs");
+    shader_t id_shader("assets/id.vs", "assets/id.fs");
 
     std::cerr << "shaders done\n";
 
@@ -284,7 +287,7 @@ int main(int, char **) {
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LESS);
+        glDepthFunc(GL_LEQUAL);
 
         // Gui start new frame
         auto const frame_start_time = std::chrono::steady_clock::now();
@@ -344,10 +347,19 @@ int main(int, char **) {
         glDrawElements(GL_TRIANGLES, 6 * 6, GL_UNSIGNED_INT, 0);
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindVertexArray(0);
-        
-        for (Mesh& mesh : meshes) {
 
-            object_shader.use();
+
+        glColorMask(0, 0, 0, 0);
+        id_shader.use();
+        for (Mesh &mesh : meshes) {
+            id_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
+            mesh.draw();
+        }
+
+        glColorMask(1, 1, 1, 1);
+        object_shader.use();
+        for (Mesh &mesh : meshes) {
+
 
             object_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
             object_shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
