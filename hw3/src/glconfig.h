@@ -48,7 +48,8 @@ class Material {
   public:
     Material();
 
-    bool load(tinyobj::material_t mat, std::string path_to_textures = "");
+    void load(std::string texture_filename);
+    void load(tinyobj::material_t mat, std::string path_to_textures = "");
 
     GLuint get_texture() const;
 
@@ -58,7 +59,8 @@ class Material {
 
 class Mesh {
   public:
-    Mesh(std::vector<float> vertices, std::vector<unsigned int> indices, Material material);
+    Mesh(std::vector<float> vertices, std::vector<unsigned int> indices, Material material, std::vector<size_t> attribs);
+    Mesh(GLuint vbo, GLuint vao, GLuint ebo, Material material, int vertex_count);
 
     void draw();
 
@@ -66,5 +68,9 @@ class Mesh {
   private:
     GLuint vbo, vao, ebo;
 
-    int vertiex_count;
+    int vertex_count;
 };
+
+Mesh genTriangulation(unsigned int width, unsigned int heigth);
+
+Mesh genTorLandscape(const unsigned char* image, unsigned int width, unsigned int heigth);

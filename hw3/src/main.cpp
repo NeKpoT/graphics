@@ -106,6 +106,7 @@ std::vector<Mesh> create_object
     , const std::vector<Material> &materials) {
 
     std::vector<Mesh> meshes;
+    meshes.reserve(shapes.size());
 
     for (const tinyobj::shape_t& shape : shapes) {
         size_t vertex_count = 0;
@@ -136,7 +137,7 @@ std::vector<Mesh> create_object
             }
         }
 
-        meshes.emplace_back(vertices, indices, materials[shape.mesh.material_ids[0]]);
+        meshes.emplace_back(vertices, indices, materials[shape.mesh.material_ids[0]], std::vector<size_t>{3, 3, 2});
     }
 
     return meshes;
@@ -232,6 +233,96 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
     cursor_position[1] = ypos;
 }
 
+Mesh make_torus(unsigned int latitude_size, unsigned int longitude_size) {
+
+    // READ FILE
+    std::stringstream file_stream;
+    try {
+        std::ifstream file("assets/landscape_gen.vs");
+        file_stream << file.rdbuf();
+    } catch (std::exception const &e) {
+        std::cerr << "Error reading shader file: " << e.what() << std::endl;
+    }
+
+    std::string transformer_string = file_stream.str();
+    const char *transformer_text = transformer_string.c_str();
+
+    // MAKE A PROGRAM
+    GLuint shader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(shader, 1, &transformer_text, nullptr);
+    glCompileShader(shader);
+
+    GLuint program = glCreateProgram();
+    glAttachShader(program, shader);
+
+    // CREATE BUFFERS
+    const GLchar *result_name[] = { "out_normal", "out_position", "out_texcoord" };
+    glTransformFeedbackVaryings(program, 3, result_name, GL_INTERLEAVED_ATTRIBS);
+
+    glLinkProgram(program);
+
+    // GET RESOURCES
+    Material mat;
+    mat.load("assets/test.png");
+
+    GLuint height_map;
+    glGenTextures(1, &height_map);
+    load_image(height_map, "assets/height.png");
+
+    // CREATE BUFFERS
+    Mesh plane = genTriangulation(latitude_size, longitude_size);
+    GLuint outbuff;
+    glGenBuffers(1, &outbuff);
+    glBindBuffer(GL_ARRAY_BUFFER, outbuff);
+    size_t result_vertex_count = latitude_size * longitude_size * 6;
+    size_t result_size = result_vertex_count * 8;
+    glBufferData(GL_ARRAY_BUFFER, result_size, nullptr, GL_STATIC_READ);
+
+    // SET INPUTS
+    glUseProgram(program);
+    glUniform1i(glGetUniformLocation(program, "height_map"), height_map);
+    glUniform1f(glGetUniformLocation(program, "R"), 3);
+    glUniform1f(glGetUniformLocation(program, "r"), 1);
+    glUniform1f(glGetUniformLocation(program, "height_mult"), 1);
+
+
+    // RUN PROGRAM
+    GLuint query;
+    glGenQueries(1, &query);
+
+    glEnable(GL_RASTERIZER_DISCARD);
+
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, outbuff); // SET INPUT
+
+    glBeginQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, query);
+    glBeginTransformFeedback(GL_TRIANGLES);
+    plane.draw();
+    glEndTransformFeedback();
+    glEndQuery(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+
+    glDisable(GL_RASTERIZER_DISCARD);
+
+    glFlush();
+
+    // CREATE MESH ARRAYS
+
+    GLuint primitives;
+    glGetQueryObjectuiv(query, GL_QUERY_RESULT, &primitives);
+
+    std::cerr << "Transformed " << primitives << " triangles" << std::endl;
+
+    std::vector<GLfloat> result_data(result_size);
+    glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, result_data.size() * sizeof(GLfloat), &result_data[0]);
+
+    std::vector<unsigned int> indices;
+    indices.reserve(result_vertex_count);
+    for (int i = 0; i < result_vertex_count; i++) {
+        indices.push_back(i);
+    }
+
+    return Mesh(result_data, indices, mat, { 3, 3, 2 });
+}
+
 int main(int, char **) {
     GLFWwindow *window = init_window();
 
@@ -269,6 +360,11 @@ int main(int, char **) {
     glfwSetCursorPosCallback(window, &mouse_callback);
 
     auto const start_time = std::chrono::steady_clock::now();
+
+    Mesh plane = genTriangulation(100, 100);
+    Mesh tor = make_torus(100, 100);
+
+    meshes = std::vector<Mesh>(1, tor);
 
     while (!glfwWindowShouldClose(window)) {
 

@@ -1,6 +1,7 @@
 #include "glconfig.h"
 
 #include <iostream>
+#include <numeric>
 
 #include <fmt/format.h>
 
@@ -92,17 +93,21 @@ Material::Material() {
     glGenTextures(1, &texture);
 }
 
-bool Material::load(tinyobj::material_t mat, std::string path_to_textures) {
-    load_image(texture, (path_to_textures + mat.diffuse_texname).c_str());
+void Material::load(std::string texture_filename) {
+    load_image(texture, texture_filename.c_str());
+}
+
+void Material::load(tinyobj::material_t mat, std::string path_to_textures) {
+    load(path_to_textures + mat.diffuse_texname);
 }
 
 GLuint Material::get_texture() const {
     return texture;
 }
 
-
-Mesh::Mesh(std::vector<float> vertices, std::vector<unsigned int> indices, Material material) : mat(material) {
-    vertiex_count = vertices.size();
+Mesh::Mesh(std::vector<float> vertices, std::vector<unsigned int> indices, Material material, std::vector<size_t> attribs)
+    : mat(material) {
+    vertex_count = vertices.size();
 
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
@@ -112,21 +117,58 @@ Mesh::Mesh(std::vector<float> vertices, std::vector<unsigned int> indices, Mater
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), &indices[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
+
+    size_t all_attr_len = std::accumulate(attribs.begin(), attribs.end(), 0);
+    size_t prev_attr_len = 0;
+    for (size_t attr_i = 0; attr_i < attribs.size(); attr_i++) {
+        glVertexAttribPointer(attr_i, attribs[attr_i], GL_FLOAT, GL_FALSE, all_attr_len * sizeof(float), (void *)(prev_attr_len * sizeof(float)));
+        glEnableVertexAttribArray(attr_i);
+        prev_attr_len += attribs[attr_i];
+    }
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 }
+
+Mesh::Mesh(GLuint vbo, GLuint vao, GLuint ebo, Material material, int vertex_count)
+    : vbo(vbo)
+    , vao(vao)
+    , ebo(ebo)
+    , mat(material)
+    , vertex_count(vertex_count) {}
 
 void Mesh::draw() {
 
     // Bind vertex array = buffers + indices
     glBindVertexArray(vao);
     // Execute draw call
-    glDrawElements(GL_TRIANGLES, vertiex_count, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, vertex_count, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
+}
+
+Mesh genTriangulation(unsigned int width, unsigned int heigth) {
+    std::vector<float> vertices;
+    for (unsigned int xi = 0; xi < width; xi++) {
+        for (unsigned int yi = 0; yi < heigth; yi++) {
+            float xf = (1.0f * xi) / width;
+            float yf = (1.0f * yi) / heigth;
+            float xt = (1.0f * (xi + 1)) / width;
+            float yt = (1.0f * (yi + 1)) / heigth;
+            auto v = {
+                xf, yf,
+                xf, yt,
+                xt, yt,
+                xf, yf,
+                xt, yf,
+                xt, yt
+            };
+            std::copy(v.begin(), v.end(), std::back_insert_iterator<std::vector<float>>(vertices));
+        }
+    }
+
+    std::vector<unsigned int> indices;
+    for (size_t i = 0; i * 2 < vertices.size(); i++) {
+        indices.push_back(i);
+    }
+
+    return Mesh(vertices, indices, Material(), { 2 });
 }
