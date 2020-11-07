@@ -41,5 +41,5 @@ void main()
     vec3 position = vec3(in_position, texture(height_map, in_position) * height_mult);
     out_position = to_tor(position, R, r);
 
-    out_normal = normalize(to_tor(position + vec3(0, 0, 1), R, r) - position);
+    out_normal = normalize(to_tor(position + vec3(0, 0, 1), R, r) - out_position);
 }

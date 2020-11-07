@@ -145,7 +145,21 @@ void Mesh::draw() {
     glBindVertexArray(0);
 }
 
+glm::vec3 to_tor(glm::vec3 pos, float R, float r) {
+    float long_a = pos.x * 2 * M_PI;
+    float lat_a = pos.y * 2 * M_PI;
+
+    r += pos.z;
+    float radius = R - r * cos(lat_a);
+    return glm::vec3(
+        cos(long_a) * radius,
+        sin(long_a) * radius,
+        r * sin(lat_a));
+}
+
 Mesh genTriangulation(unsigned int width, unsigned int heigth) {
+    float R = 3, r = 1;
+
     std::vector<float> vertices;
     for (unsigned int xi = 0; xi < width; xi++) {
         for (unsigned int yi = 0; yi < heigth; yi++) {
@@ -153,15 +167,37 @@ Mesh genTriangulation(unsigned int width, unsigned int heigth) {
             float yf = (1.0f * yi) / heigth;
             float xt = (1.0f * (xi + 1)) / width;
             float yt = (1.0f * (yi + 1)) / heigth;
-            auto v = {
-                xf, yf,
-                xf, yt,
-                xt, yt,
-                xf, yf,
-                xt, yf,
-                xt, yt
+            std::vector<glm::vec2> vs = {
+                {xf, yf},
+                {xf, yt},
+                {xt, yt},
+                {xf, yf},
+                {xt, yf},
+                {xt, yt}
             };
-            std::copy(v.begin(), v.end(), std::back_insert_iterator<std::vector<float>>(vertices));
+            for (const glm::vec2 &p : vs) {
+                glm::vec3 out_normal;
+                glm::vec3 out_position;
+                glm::vec2 out_texcoord;
+
+                out_texcoord = p;
+
+                glm::vec3 position = glm::vec3(p, 0.0);
+                out_position = to_tor(position, R, r);
+                out_normal = glm::normalize(to_tor(position + glm::vec3(0, 0, 1), R, r) - out_position);
+
+                std::vector<float> v = {
+                    out_position.x,
+                    out_position.y,
+                    out_position.z,
+                    out_normal.x,
+                    out_normal.y,
+                    out_normal.z,
+                    out_texcoord.x,
+                    out_texcoord.y,
+            };
+                std::copy(v.begin(), v.end(), std::back_insert_iterator<std::vector<float>>(vertices));
+            }
         }
     }
 
@@ -170,5 +206,7 @@ Mesh genTriangulation(unsigned int width, unsigned int heigth) {
         indices.push_back(i);
     }
 
-    return Mesh(vertices, indices, Material(), { 2 });
+    Material mat;
+    mat.load("assets/test.png");
+    return Mesh(vertices, indices, mat, { 3, 3, 2 });
 }

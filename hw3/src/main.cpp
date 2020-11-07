@@ -362,9 +362,9 @@ int main(int, char **) {
     auto const start_time = std::chrono::steady_clock::now();
 
     Mesh plane = genTriangulation(100, 100);
-    Mesh tor = make_torus(100, 100);
+    // Mesh tor = make_torus(100, 100);
 
-    meshes = std::vector<Mesh>(1, tor);
+    meshes = std::vector<Mesh>(1, plane);
 
     while (!glfwWindowShouldClose(window)) {
 
