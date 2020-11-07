@@ -235,6 +235,8 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
 
 Mesh make_torus(unsigned int latitude_size, unsigned int longitude_size) {
 
+    GLenum error_id;
+
     // READ FILE
     std::stringstream file_stream;
     try {
@@ -252,11 +254,21 @@ Mesh make_torus(unsigned int latitude_size, unsigned int longitude_size) {
     glShaderSource(shader, 1, &transformer_text, nullptr);
     glCompileShader(shader);
 
+    // check error
+    int success;
+    char infoLog[1024];
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(shader, 1024, NULL, infoLog);
+        std::cerr << "Error compiling Vertex shader_t:\n"
+                  << infoLog << std::endl;
+    }
+
     GLuint program = glCreateProgram();
     glAttachShader(program, shader);
 
     // CREATE BUFFERS
-    const GLchar *result_name[] = { "out_normal", "out_position", "out_texcoord" };
+    const GLchar *result_name[] = { "out_position", "out_normal", "out_texcoord" };
     glTransformFeedbackVaryings(program, 3, result_name, GL_INTERLEAVED_ATTRIBS);
 
     glLinkProgram(program);
@@ -270,21 +282,20 @@ Mesh make_torus(unsigned int latitude_size, unsigned int longitude_size) {
     load_image(height_map, "assets/height.png");
 
     // CREATE BUFFERS
-    Mesh plane = genTriangulation(latitude_size, longitude_size);
+    Mesh plane = genTriangulation2(latitude_size, longitude_size);
     GLuint outbuff;
     glGenBuffers(1, &outbuff);
     glBindBuffer(GL_ARRAY_BUFFER, outbuff);
     size_t result_vertex_count = latitude_size * longitude_size * 6;
     size_t result_size = result_vertex_count * 8;
-    glBufferData(GL_ARRAY_BUFFER, result_size, nullptr, GL_STATIC_READ);
+    glBufferData(GL_ARRAY_BUFFER, result_size * sizeof(float), nullptr, GL_STATIC_READ);
 
     // SET INPUTS
     glUseProgram(program);
     glUniform1i(glGetUniformLocation(program, "height_map"), height_map);
     glUniform1f(glGetUniformLocation(program, "R"), 3);
     glUniform1f(glGetUniformLocation(program, "r"), 1);
-    glUniform1f(glGetUniformLocation(program, "height_mult"), 1);
-
+    glUniform1f(glGetUniformLocation(program, "height_mult"), 0);
 
     // RUN PROGRAM
     GLuint query;
@@ -362,9 +373,9 @@ int main(int, char **) {
     auto const start_time = std::chrono::steady_clock::now();
 
     Mesh plane = genTriangulation(100, 100);
-    // Mesh tor = make_torus(100, 100);
+    Mesh tor = make_torus(100, 100);
 
-    meshes = std::vector<Mesh>(1, plane);
+    meshes = std::vector<Mesh>(1, tor);
 
     while (!glfwWindowShouldClose(window)) {
 

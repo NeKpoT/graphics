@@ -168,12 +168,12 @@ Mesh genTriangulation(unsigned int width, unsigned int heigth) {
             float xt = (1.0f * (xi + 1)) / width;
             float yt = (1.0f * (yi + 1)) / heigth;
             std::vector<glm::vec2> vs = {
-                {xf, yf},
-                {xf, yt},
-                {xt, yt},
-                {xf, yf},
-                {xt, yf},
-                {xt, yt}
+                { xf, yf },
+                { xf, yt },
+                { xt, yt },
+                { xf, yf },
+                { xt, yf },
+                { xt, yt }
             };
             for (const glm::vec2 &p : vs) {
                 glm::vec3 out_normal;
@@ -195,9 +195,39 @@ Mesh genTriangulation(unsigned int width, unsigned int heigth) {
                     out_normal.z,
                     out_texcoord.x,
                     out_texcoord.y,
-            };
+                };
                 std::copy(v.begin(), v.end(), std::back_insert_iterator<std::vector<float>>(vertices));
             }
+        }
+    }
+
+    std::vector<unsigned int> indices;
+    for (size_t i = 0; i * 8 < vertices.size(); i++) {
+        indices.push_back(i);
+    }
+
+    Material mat;
+    mat.load("assets/test.png");
+    return Mesh(vertices, indices, mat, { 3, 3, 2 });
+}
+
+Mesh genTriangulation2(unsigned int width, unsigned int heigth) {
+    std::vector<float> vertices;
+    for (unsigned int xi = 0; xi < width; xi++) {
+        for (unsigned int yi = 0; yi < heigth; yi++) {
+            float xf = (1.0f * xi) / width;
+            float yf = (1.0f * yi) / heigth;
+            float xt = (1.0f * (xi + 1)) / width;
+            float yt = (1.0f * (yi + 1)) / heigth;
+            std::vector<float> v = {
+                xf, yf,
+                xf, yt,
+                xt, yt,
+                xf, yf,
+                xt, yf,
+                xt, yt
+            };
+            std::copy(v.begin(), v.end(), std::back_insert_iterator<std::vector<float>>(vertices));
         }
     }
 
@@ -208,5 +238,5 @@ Mesh genTriangulation(unsigned int width, unsigned int heigth) {
 
     Material mat;
     mat.load("assets/test.png");
-    return Mesh(vertices, indices, mat, { 3, 3, 2 });
+    return Mesh(vertices, indices, mat, { 2 });
 }
