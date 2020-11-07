@@ -1,0 +1,1 @@
+`./buils.sh && ./run.sh` or windows equivalent
