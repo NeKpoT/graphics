@@ -224,8 +224,8 @@ Mesh genTriangulation2(unsigned int width, unsigned int heigth) {
                 xf, yt,
                 xt, yt,
                 xf, yf,
-                xt, yf,
-                xt, yt
+                xt, yt,
+                xt, yf
             };
             std::copy(v.begin(), v.end(), std::back_insert_iterator<std::vector<float>>(vertices));
         }

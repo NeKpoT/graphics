@@ -342,6 +342,22 @@ Mesh make_torus(unsigned int latitude_size, unsigned int longitude_size) {
         indices.push_back(i);
     }
 
+    // FIX NORMALS
+    for (size_t fi = 0; fi < result_size; fi += 8 * 3) {
+        std::vector<glm::vec3> pos;
+        for (int vi = 0; vi < 3; vi++) {
+            size_t start = fi + vi * 8;
+            pos.emplace_back(result_data[start], result_data[start + 1], result_data[start + 2]);
+        }
+        glm::vec3 norm = glm::normalize(glm::cross(pos[2] - pos[0], pos[1] - pos[0]));
+        for (int vi = 0; vi < 3; vi++) {
+            size_t start_o = fi + vi * 8 + 3;
+            result_data[start_o] = norm.x;
+            result_data[start_o + 1] = norm.y;
+            result_data[start_o + 2] = norm.z;
+        }
+    }
+
     return Mesh(result_data, indices, mat, { 3, 3, 2 });
 }
 

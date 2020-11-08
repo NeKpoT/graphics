@@ -61,22 +61,22 @@ void main()
     out_position = to_tor(position, R, r);
 
     float eps = 1.0 / 600;
-    // vec3 dx = get_vec(in_position + vec2(eps, 0)) - get_vec(in_position - vec2(eps, 0));
-    // vec3 dy = get_vec(in_position + vec2(0, eps)) - get_vec(in_position - vec2(0, eps));
-    // vec3 grad = normalize(cross(dx, dy));
+    vec3 dx = get_vec(in_position + vec2(eps, 0)) - get_vec(in_position - vec2(eps, 0));
+    vec3 dy = get_vec(in_position + vec2(0, eps)) - get_vec(in_position - vec2(0, eps));
+    vec3 grad = normalize(cross(dx, dy));
 
     // if (dot(grad, vec3(0, 0, 1)) <= 0) {
     //     grad = vec3(0, 0, 1);
     // }
 
-    vec3 grad = normalize(texture(normal_map, in_position).rgb - 0.5);
+    // vec3 grad = normalize(texture(normal_map, in_position).rgb - 0.5);
     // vec3 grad = vec3(0, 0, 1);
     // grad = grad * 0.1 + vec3(0, 0, 0.9);
     // grad.z *= 5;
     // grad = grad * 0.5 + 0.5;
 
-
+    out_normal = vec3(0, 0, 0); // actually creating normals on CPU in make_torus(..)
     //out_normal = normalize(to_tor(position + grad * eps, R, r) - to_tor(position - grad * eps, R, r));
-    out_normal = normalize(rot(position, R, r) * grad);
-    out_normal /= sqrt(dot(out_normal, out_normal));
+    //out_normal = normalize(rot(position, R, r) * grad);
+    //out_normal /= sqrt(dot(out_normal, out_normal));
 }
