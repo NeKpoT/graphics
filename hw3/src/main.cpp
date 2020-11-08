@@ -277,9 +277,11 @@ Mesh make_torus(unsigned int latitude_size, unsigned int longitude_size) {
     Material mat;
     mat.load("assets/test.png");
 
-    GLuint height_map;
+    GLuint height_map, normal_map;
     glGenTextures(1, &height_map);
     load_image(height_map, "assets/height.png");
+    glGenTextures(1, &normal_map);
+    load_image(normal_map, "assets/normal_map.png");
 
     // CREATE BUFFERS
     Mesh plane = genTriangulation2(latitude_size, longitude_size);
@@ -292,10 +294,19 @@ Mesh make_torus(unsigned int latitude_size, unsigned int longitude_size) {
 
     // SET INPUTS
     glUseProgram(program);
-    glUniform1i(glGetUniformLocation(program, "height_map"), height_map);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, height_map);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, normal_map);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glUniform1i(glGetUniformLocation(program, "height_map"), 0);
+    glUniform1i(glGetUniformLocation(program, "normal_map"), 1);
     glUniform1f(glGetUniformLocation(program, "R"), 3);
     glUniform1f(glGetUniformLocation(program, "r"), 1);
-    glUniform1f(glGetUniformLocation(program, "height_mult"), 0);
+    glUniform1f(glGetUniformLocation(program, "height_mult"), 1);
 
     // RUN PROGRAM
     GLuint query;
@@ -373,7 +384,7 @@ int main(int, char **) {
     auto const start_time = std::chrono::steady_clock::now();
 
     Mesh plane = genTriangulation(100, 100);
-    Mesh tor = make_torus(100, 100);
+    Mesh tor = make_torus(300, 300);
 
     meshes = std::vector<Mesh>(1, tor);
 

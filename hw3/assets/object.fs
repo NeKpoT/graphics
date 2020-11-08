@@ -54,10 +54,10 @@ void main()
     r_ref = r_ref * r_ref;
     float r_prism = 1 - r_ref;
     
-    vec3 texture = texture(u_tex, v_out.texcoord).rgb;
+    vec3 tex = texture(u_tex, v_out.texcoord).rgb;
 
     if (u_tex_gamma_correct) {
-        texture = gamma(texture);
+        tex = gamma(tex);
     }
 
     vec3 color_out;
@@ -65,14 +65,16 @@ void main()
     if (u_blend_gamma_correct) {
         mirror = ungamma(mirror);
         prism = ungamma(prism);
-        texture = ungamma(texture);
+        tex = ungamma(tex);
     }
-    color_out = (mirror * r_ref + prism * r_prism) * (1 - u_texture_a) + texture * u_texture_a;
+    color_out = (mirror * r_ref + prism * r_prism) * (1 - u_texture_a) + tex * u_texture_a;
     if (u_blend_gamma_correct) {
         color_out = gamma(color_out);
     }
     
 
-    o_frag_color = vec4(color_out, 1.0);
+    // o_frag_color = vec4(color_out, 1.0);
+    // o_frag_color = texture(u_cube, -norm);
+    o_frag_color = vec4((norm / 2 + 0.5).b, 0.0, 0.0, 1.0);
     // o_frag_color = vec4(r_prism * vec3(1, 1, 1), 1);
 }
