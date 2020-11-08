@@ -73,8 +73,8 @@ void main()
     }
     
 
-    // o_frag_color = vec4(color_out, 1.0);
-    o_frag_color = texture(u_cube, -norm);
-    // o_frag_color = vec4((norm / 2 + 0.5).r, 0.0, 0.0, 1.0);
-    // o_frag_color = vec4(r_prism * vec3(1, 1, 1), 1);
+    o_frag_color = vec4(color_out, 1.0);
+    // o_frag_color = texture(u_cube, -norm); // see-through
+    // o_frag_color = vec4((norm / 2 + 0.5).r, 0.0, 0.0, 1.0); // show norm
+    // o_frag_color = vec4(r_prism * vec3(1, 1, 1), 1); // show prism
 }

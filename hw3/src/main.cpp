@@ -279,7 +279,7 @@ Mesh make_torus(unsigned int latitude_size, unsigned int longitude_size) {
 
     GLuint height_map, normal_map;
     glGenTextures(1, &height_map);
-    load_image(height_map, "assets/height.png");
+    load_image(height_map, "assets/testheight.png");
     glGenTextures(1, &normal_map);
     load_image(normal_map, "assets/normal_map.png");
 
@@ -304,9 +304,9 @@ Mesh make_torus(unsigned int latitude_size, unsigned int longitude_size) {
 
     glUniform1i(glGetUniformLocation(program, "height_map"), 0);
     glUniform1i(glGetUniformLocation(program, "normal_map"), 1);
-    glUniform1f(glGetUniformLocation(program, "R"), 3);
-    glUniform1f(glGetUniformLocation(program, "r"), 1);
-    glUniform1f(glGetUniformLocation(program, "height_mult"), 1);
+    glUniform1f(glGetUniformLocation(program, "R"), 5);
+    glUniform1f(glGetUniformLocation(program, "r"), 0.7);
+    glUniform1f(glGetUniformLocation(program, "height_mult"), 0.8);
 
     // RUN PROGRAM
     GLuint query;
@@ -343,20 +343,20 @@ Mesh make_torus(unsigned int latitude_size, unsigned int longitude_size) {
     }
 
     // FIX NORMALS
-    for (size_t fi = 0; fi < result_size; fi += 8 * 3) {
-        std::vector<glm::vec3> pos;
-        for (int vi = 0; vi < 3; vi++) {
-            size_t start = fi + vi * 8;
-            pos.emplace_back(result_data[start], result_data[start + 1], result_data[start + 2]);
-        }
-        glm::vec3 norm = glm::normalize(glm::cross(pos[2] - pos[0], pos[1] - pos[0]));
-        for (int vi = 0; vi < 3; vi++) {
-            size_t start_o = fi + vi * 8 + 3;
-            result_data[start_o] = norm.x;
-            result_data[start_o + 1] = norm.y;
-            result_data[start_o + 2] = norm.z;
-        }
-    }
+    // for (size_t fi = 0; fi < result_size; fi += 8 * 3) {
+    //     std::vector<glm::vec3> pos;
+    //     for (int vi = 0; vi < 3; vi++) {
+    //         size_t start = fi + vi * 8;
+    //         pos.emplace_back(result_data[start], result_data[start + 1], result_data[start + 2]);
+    //     }
+    //     glm::vec3 norm = glm::normalize(glm::cross(pos[2] - pos[0], pos[1] - pos[0]));
+    //     for (int vi = 0; vi < 3; vi++) {
+    //         size_t start_o = fi + vi * 8 + 3;
+    //         result_data[start_o] = norm.x;
+    //         result_data[start_o + 1] = norm.y;
+    //         result_data[start_o + 2] = norm.z;
+    //     }
+    // }
 
     return Mesh(result_data, indices, mat, { 3, 3, 2 });
 }
