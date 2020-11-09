@@ -39,6 +39,19 @@ vec3 ungamma(vec3 v) {
     return pow(v, vec3(UNGAMMA, UNGAMMA, UNGAMMA));
 }
 
+const float FULL_DETAIL_DIST = 2;
+const float NO_DETAIL_DIST = 4;
+
+vec4 get_texture(sampler2D tex, vec2 pos) {
+    vec4 tex_v = texture(tex, pos);
+    float dist = distance(u_cam, v_out.position);
+    if (dist < NO_DETAIL_DIST) {
+        float detail_a = max(0, (NO_DETAIL_DIST - dist) / (NO_DETAIL_DIST - FULL_DETAIL_DIST)) / 4;
+        tex_v = tex_v * (1 - detail_a) + texture(tex, pos * 10) * detail_a;
+    }
+    return tex_v;
+}
+
 vec3 color(sampler2D u_tex, float u_texture_a, float u_prism_n)
 {
     float optics_a = 1 - u_texture_a;
@@ -62,7 +75,7 @@ vec3 color(sampler2D u_tex, float u_texture_a, float u_prism_n)
     r_ref = r_ref * r_ref;
     float r_prism = 1 - r_ref;
     
-    vec3 tex = texture(u_tex, v_out.texcoord).rgb;
+    vec3 tex = get_texture(u_tex, v_out.texcoord).rgb;
 
     if (u_tex_gamma_correct) {
         tex = gamma(tex);
