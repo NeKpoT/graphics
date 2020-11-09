@@ -2,6 +2,8 @@
 
 #define PI 3.1415926538
 
+#define BADROCK_MULT 0.2f;
+
 layout (location = 0) in vec2 in_position;
 
 // struct vx_output_t
@@ -15,13 +17,14 @@ layout (location = 0) in vec2 in_position;
 out vec3 out_position;
 out vec3 out_normal;
 out vec2 out_texcoord;
+out float out_height;
 
 uniform sampler2D height_map;
 uniform sampler2D normal_map;
 uniform float R;
 uniform float r;
 uniform float height_mult;
-
+uniform float badrock_height;
 
 vec3 to_tor(vec3 pos, float R, float r) {
     float long_a = pos.x * 2 * PI;
@@ -51,7 +54,11 @@ mat3 rot(vec3 pos, float R, float r) {
 }
 
 vec3 get_vec(vec2 pos) {
-    return vec3(pos, texture(height_map, pos) * height_mult);
+    float h = texture(height_map, pos).z;
+    if (h < badrock_height) {
+        h = badrock_height - (badrock_height - h) * BADROCK_MULT;
+    }
+    return vec3(pos, h * height_mult);
 }
 
 void main()
@@ -59,6 +66,7 @@ void main()
     out_texcoord = in_position;
     vec3 position = get_vec(in_position);
     out_position = to_tor(position, R, r);
+    out_height = position.z;
 
     float eps = 1.0 / 600;
     vec3 dx = to_tor(get_vec(in_position + vec2(eps, 0)), R, r) - to_tor(get_vec(in_position - vec2(eps, 0)), R, r);

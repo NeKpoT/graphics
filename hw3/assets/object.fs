@@ -7,18 +7,22 @@ struct vx_output_t
     vec3 normal;
     vec3 position;
     vec2 texcoord;
+    float h;
 };
 
 in vx_output_t v_out;
 
 uniform samplerCube u_cube;
 uniform sampler2D u_tex;
+uniform sampler2D u_tex2;
 
 uniform vec3 u_cam;
 uniform float u_texture_a;
 uniform float u_prism_n;
 uniform bool u_tex_gamma_correct;
 uniform bool u_blend_gamma_correct;
+
+uniform float u_badrock_height;
 
 const float GAMMA = 2.2;
 const float UNGAMMA = 1 / GAMMA;
@@ -55,6 +59,9 @@ void main()
     float r_prism = 1 - r_ref;
     
     vec3 tex = texture(u_tex, v_out.texcoord).rgb;
+    if (v_out.h < u_badrock_height) {
+        tex = texture(u_tex2, v_out.texcoord).rgb;
+    }
 
     if (u_tex_gamma_correct) {
         tex = gamma(tex);
