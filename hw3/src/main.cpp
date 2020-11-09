@@ -152,12 +152,19 @@ void load_cubemap(GLuint &texture) {
         // "assets/Bridge/posz.jpg",
         // "assets/Bridge/negz.jpg"
 
-        "assets/SaintLazarusChurch/posx.jpg",
-        "assets/SaintLazarusChurch/negx.jpg",
-        "assets/SaintLazarusChurch/posy.jpg",
-        "assets/SaintLazarusChurch/negy.jpg",
-        "assets/SaintLazarusChurch/posz.jpg",
-        "assets/SaintLazarusChurch/negz.jpg"
+        // "assets/SaintLazarusChurch/posx.jpg",
+        // "assets/SaintLazarusChurch/negx.jpg",
+        // "assets/SaintLazarusChurch/posy.jpg",
+        // "assets/SaintLazarusChurch/negy.jpg",
+        // "assets/SaintLazarusChurch/posz.jpg",
+        // "assets/SaintLazarusChurch/negz.jpg"
+
+        "assets/sky/px.png",
+        "assets/sky/nx.png",
+        "assets/sky/py.png",
+        "assets/sky/ny.png",
+        "assets/sky/pz.png",
+        "assets/sky/nz.png"
 
         // "assets/testcube/positive-x.tga",
         // "assets/testcube/negative-x.tga",
@@ -303,7 +310,7 @@ Mesh make_torus(unsigned int latitude_size, unsigned int longitude_size) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     glUniform1i(glGetUniformLocation(program, "height_map"), 0);
-    glUniform1i(glGetUniformLocation(program, "normal_map"), 1);
+    glUniform1i(glGetUniformLocation(program, "normal_map"), 1); // unused
     glUniform1f(glGetUniformLocation(program, "R"), 5);
     glUniform1f(glGetUniformLocation(program, "r"), 0.7);
     glUniform1f(glGetUniformLocation(program, "height_mult"), 0.8);
