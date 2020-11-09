@@ -46,25 +46,25 @@ void crop_abs(T& x, T max_abs) {
 
 class Material {
   public:
-    Material();
-
-    void load(std::string texture_filename);
-    void load(tinyobj::material_t mat, std::string path_to_textures = "");
+    Material(std::string texture_filename, GLfloat texture_a = 1, GLfloat prism_n = 0);
 
     GLuint get_texture() const;
 
+    const GLfloat texture_a;
+    const GLfloat prism_n;
   private:
     GLuint texture;
 };
 
 class Mesh {
   public:
-    Mesh(std::vector<float> vertices, std::vector<unsigned int> indices, Material material, std::vector<size_t> attribs);
-    Mesh(GLuint vbo, GLuint vao, GLuint ebo, Material material, int vertex_count);
+    Mesh(std::vector<float> vertices, std::vector<unsigned int> indices, std::vector<Material> materials, std::vector<size_t> attribs);
+    Mesh(GLuint vbo, GLuint vao, GLuint ebo, std::vector<Material> materials, int vertex_count);
 
     void draw();
+    void draw(shader_t& shader);
 
-    const Material mat;
+    const std::vector<Material> mats;
   private:
     GLuint vbo, vao, ebo;
 

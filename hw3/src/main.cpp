@@ -137,7 +137,7 @@ std::vector<Mesh> create_object
             }
         }
 
-        meshes.emplace_back(vertices, indices, materials[shape.mesh.material_ids[0]], std::vector<size_t>{3, 3, 2});
+        meshes.emplace_back(vertices, indices, std::vector<Material>{ materials[shape.mesh.material_ids[0]] }, std::vector<size_t>{3, 3, 2});
     }
 
     return meshes;
@@ -282,8 +282,8 @@ Mesh make_torus(unsigned int latitude_size, unsigned int longitude_size, float r
     glLinkProgram(program);
 
     // GET RESOURCES
-    Material mat;
-    mat.load("assets/moon.jpg");
+    Material moon_mat("assets/moon.jpg");
+    Material steel_mat("assets/metal dec.jpg", 0.7);
 
     GLuint height_map, normal_map;
     glGenTextures(1, &height_map);
@@ -367,7 +367,7 @@ Mesh make_torus(unsigned int latitude_size, unsigned int longitude_size, float r
     //     }
     // }
 
-    return Mesh(result_data, indices, mat, { 3, 3, 2, 1 });
+    return Mesh(result_data, indices, std::vector<Material> { moon_mat, steel_mat }, { 3, 3, 2, 1 });
 }
 
 int main(int, char **) {
@@ -380,9 +380,9 @@ int main(int, char **) {
         return 0;
     }
 
-    std::vector<Material> mats(materials.size());
+    std::vector<Material> mats;
     for (size_t i = 0; i < materials.size(); i++) {
-        mats[i].load(materials[i], "assets/reflex_camera/");
+        mats.emplace_back(std::string("assets/reflex_camera/") + materials[i].diffuse_texname);
     }
 
     std::vector<Mesh> meshes = create_object(attrib, shapes, mats);
@@ -408,14 +408,10 @@ int main(int, char **) {
 
     auto const start_time = std::chrono::steady_clock::now();
 
-    Mesh plane = genTriangulation(100, 100);
     float r = 0.7, R = 5, height_mult = 0.8, badrock_height = 0.4;
     Mesh tor = make_torus(300, 300, r, R, height_mult, badrock_height);
 
     meshes = std::vector<Mesh>(1, tor);
-
-    Material steel_mat;
-    steel_mat.load("assets/metal dec.jpg");
 
     while (!glfwWindowShouldClose(window)) {
 
@@ -446,15 +442,6 @@ int main(int, char **) {
         ImGui::Begin("Triangle Position/Color");
         static float fovy = 90;
         ImGui::SliderFloat("fovy", &fovy, 10, 180);
-
-        static float prism_n = 0.8;
-        ImGui::SliderFloat("prism_n", &prism_n, 0.1, 1);
-
-        static float texture_a = 0.9;
-        ImGui::SliderFloat("texture alpha", &texture_a, 0, 1);
-
-        static float color[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-        ImGui::ColorEdit3("color", color);
 
         static bool texture_gamma_correction = true;
         ImGui::Checkbox("texture gamma correction", &texture_gamma_correction);
@@ -513,33 +500,7 @@ int main(int, char **) {
         glColorMask(1, 1, 1, 1);
         object_shader.use();
         for (Mesh &mesh : meshes) {
-
-            object_shader.set_uniform("u_tex2", int(2));
-
-            object_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
-            object_shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
-
-            object_shader.set_uniform("u_cube", int(1));
-            object_shader.set_uniform("u_tex", int(0));
-            object_shader.set_uniform("u_tile", 8.0f, 3.0f);
-
-            object_shader.set_uniform("u_texture_a", texture_a);
-
-            object_shader.set_uniform("u_prism_n", prism_n);
-
-            object_shader.set_uniform("u_tex_gamma_correct", texture_gamma_correction);
-            object_shader.set_uniform("u_blend_gamma_correct", blend_gamma_correction);
-            object_shader.set_uniform("u_badrock_height", badrock_height);
-
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, mesh.mat.get_texture());
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_REPEAT);
-
-            glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap_texture);
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -547,14 +508,17 @@ int main(int, char **) {
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-            glActiveTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, steel_mat.get_texture());
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            object_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
+            object_shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
 
-            mesh.draw();
+            object_shader.set_uniform("u_cube", int(0));
+            object_shader.set_uniform("u_tile", 8.0f, 3.0f);
+
+            object_shader.set_uniform("u_tex_gamma_correct", texture_gamma_correction);
+            object_shader.set_uniform("u_blend_gamma_correct", blend_gamma_correction);
+            object_shader.set_uniform("u_badrock_height", badrock_height);
+
+            mesh.draw(object_shader);
         }
 
         // Generate gui render commands

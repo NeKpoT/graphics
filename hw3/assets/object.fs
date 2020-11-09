@@ -13,12 +13,16 @@ struct vx_output_t
 in vx_output_t v_out;
 
 uniform samplerCube u_cube;
-uniform sampler2D u_tex;
-uniform sampler2D u_tex2;
+
+uniform sampler2D u_tex0;
+uniform sampler2D u_tex1;
+uniform float u_texture_a0;
+uniform float u_texture_a1;
+uniform float u_prism_n0;
+uniform float u_prism_n1;
 
 uniform vec3 u_cam;
-uniform float u_texture_a;
-uniform float u_prism_n;
+
 uniform bool u_tex_gamma_correct;
 uniform bool u_blend_gamma_correct;
 
@@ -35,7 +39,7 @@ vec3 ungamma(vec3 v) {
     return pow(v, vec3(UNGAMMA, UNGAMMA, UNGAMMA));
 }
 
-void main()
+vec3 color(sampler2D u_tex, float u_texture_a, float u_prism_n)
 {
     float optics_a = 1 - u_texture_a;
     
@@ -59,9 +63,6 @@ void main()
     float r_prism = 1 - r_ref;
     
     vec3 tex = texture(u_tex, v_out.texcoord).rgb;
-    if (v_out.h < u_badrock_height) {
-        tex = texture(u_tex2, v_out.texcoord).rgb;
-    }
 
     if (u_tex_gamma_correct) {
         tex = gamma(tex);
@@ -80,8 +81,19 @@ void main()
     }
     
 
-    o_frag_color = vec4(color_out, 1.0);
+    return color_out;
     // o_frag_color = texture(u_cube, -norm); // see-through
     // o_frag_color = vec4((norm / 2 + 0.5).r, 0.0, 0.0, 1.0); // show norm
     // o_frag_color = vec4(r_prism * vec3(1, 1, 1), 1); // show prism
+}
+
+void main() {
+
+    vec3 res_color;
+    if (v_out.h < u_badrock_height) {
+        res_color = color(u_tex1, u_texture_a1, u_prism_n1);
+    } else {
+        res_color = color(u_tex0, u_texture_a0, u_prism_n0);
+    }
+    o_frag_color = vec4(res_color, 1);
 }

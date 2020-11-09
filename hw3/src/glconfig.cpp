@@ -88,25 +88,17 @@ void load_image(GLuint &texture, const char* filename) {
     stbi_image_free(image);
 }
 
-
-Material::Material() {
+Material::Material(std::string texture_filename, GLfloat texture_a, GLfloat prism_n) : texture_a(texture_a), prism_n(prism_n) {
     glGenTextures(1, &texture);
-}
-
-void Material::load(std::string texture_filename) {
     load_image(texture, texture_filename.c_str());
-}
-
-void Material::load(tinyobj::material_t mat, std::string path_to_textures) {
-    load(path_to_textures + mat.diffuse_texname);
 }
 
 GLuint Material::get_texture() const {
     return texture;
 }
 
-Mesh::Mesh(std::vector<float> vertices, std::vector<unsigned int> indices, Material material, std::vector<size_t> attribs)
-    : mat(material) {
+Mesh::Mesh(std::vector<float> vertices, std::vector<unsigned int> indices, std::vector<Material> materials, std::vector<size_t> attribs)
+    : mats(materials) {
     vertex_count = vertices.size();
 
     glGenVertexArrays(1, &vao);
@@ -129,15 +121,34 @@ Mesh::Mesh(std::vector<float> vertices, std::vector<unsigned int> indices, Mater
     glBindVertexArray(0);
 }
 
-Mesh::Mesh(GLuint vbo, GLuint vao, GLuint ebo, Material material, int vertex_count)
+Mesh::Mesh(GLuint vbo, GLuint vao, GLuint ebo, std::vector<Material> materials, int vertex_count)
     : vbo(vbo)
     , vao(vao)
     , ebo(ebo)
-    , mat(material)
+    , mats(materials)
     , vertex_count(vertex_count) {}
 
-void Mesh::draw() {
+void Mesh::draw(shader_t &shader) {
+    for (int i = 0; i < mats.size(); i++) {
+        const Material &mat = mats[i];
 
+        glActiveTexture(GL_TEXTURE1 + i);
+        glBindTexture(GL_TEXTURE_2D, mat.get_texture());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_REPEAT);
+
+        const std::string i_str = std::to_string(i);
+        shader.set_uniform<int>("u_tex" + i_str, i + 1);
+        shader.set_uniform<float>("u_texture_a" + i_str, mat.texture_a);
+        shader.set_uniform<float>("u_prism_n" + i_str, mat.prism_n);
+    }
+    draw();
+}
+
+void Mesh::draw() {
     // Bind vertex array = buffers + indices
     glBindVertexArray(vao);
     // Execute draw call
@@ -155,60 +166,6 @@ glm::vec3 to_tor(glm::vec3 pos, float R, float r) {
         cos(long_a) * radius,
         sin(long_a) * radius,
         r * sin(lat_a));
-}
-
-Mesh genTriangulation(unsigned int width, unsigned int heigth) {
-    float R = 3, r = 1;
-
-    std::vector<float> vertices;
-    for (unsigned int xi = 0; xi < width; xi++) {
-        for (unsigned int yi = 0; yi < heigth; yi++) {
-            float xf = (1.0f * xi) / width;
-            float yf = (1.0f * yi) / heigth;
-            float xt = (1.0f * (xi + 1)) / width;
-            float yt = (1.0f * (yi + 1)) / heigth;
-            std::vector<glm::vec2> vs = {
-                { xf, yf },
-                { xf, yt },
-                { xt, yt },
-                { xf, yf },
-                { xt, yf },
-                { xt, yt }
-            };
-            for (const glm::vec2 &p : vs) {
-                glm::vec3 out_normal;
-                glm::vec3 out_position;
-                glm::vec2 out_texcoord;
-
-                out_texcoord = p;
-
-                glm::vec3 position = glm::vec3(p, 0.0);
-                out_position = to_tor(position, R, r);
-                out_normal = glm::normalize(to_tor(position + glm::vec3(0, 0, 1), R, r) - out_position);
-
-                std::vector<float> v = {
-                    out_position.x,
-                    out_position.y,
-                    out_position.z,
-                    out_normal.x,
-                    out_normal.y,
-                    out_normal.z,
-                    out_texcoord.x,
-                    out_texcoord.y,
-                };
-                std::copy(v.begin(), v.end(), std::back_insert_iterator<std::vector<float>>(vertices));
-            }
-        }
-    }
-
-    std::vector<unsigned int> indices;
-    for (size_t i = 0; i * 8 < vertices.size(); i++) {
-        indices.push_back(i);
-    }
-
-    Material mat;
-    mat.load("assets/test.png");
-    return Mesh(vertices, indices, mat, { 3, 3, 2 });
 }
 
 Mesh genTriangulation2(unsigned int width, unsigned int heigth) {
@@ -236,7 +193,5 @@ Mesh genTriangulation2(unsigned int width, unsigned int heigth) {
         indices.push_back(i);
     }
 
-    Material mat;
-    mat.load("assets/test.png");
-    return Mesh(vertices, indices, mat, { 2 });
+    return Mesh(vertices, indices, std::vector<Material>(), { 2 });
 }
