@@ -557,31 +557,34 @@ int main(int, char **) {
 
         glColorMask(0, 0, 0, 0);
         id_shader.use();
+        id_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
         for (Mesh &mesh : meshes) {
-            id_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
+            mesh.draw();
+        }
+        for (Mesh &mesh : car_meshes) {
             mesh.draw();
         }
 
         glColorMask(1, 1, 1, 1);
         moon_shader.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap_texture);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+        moon_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
+        moon_shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
+
+        moon_shader.set_uniform("u_cube", int(0));
+        moon_shader.set_uniform<float>("u_tile", tile_x, tile_y);
+
+        moon_shader.set_uniform("u_tex_gamma_correct", texture_gamma_correction);
+        moon_shader.set_uniform("u_blend_gamma_correct", blend_gamma_correction);
+        moon_shader.set_uniform("u_badrock_height", badrock_height);
         for (Mesh &mesh : meshes) {
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap_texture);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-            moon_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
-            moon_shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
-
-            moon_shader.set_uniform("u_cube", int(0));
-            moon_shader.set_uniform<float>("u_tile", tile_x, tile_y);
-
-            moon_shader.set_uniform("u_tex_gamma_correct", texture_gamma_correction);
-            moon_shader.set_uniform("u_blend_gamma_correct", blend_gamma_correction);
-            moon_shader.set_uniform("u_badrock_height", badrock_height);
 
             mesh.draw(moon_shader);
         }
@@ -590,24 +593,24 @@ int main(int, char **) {
         mvp_no_translation = projection * glm::mat4(glm::mat3(view * car_model));
 
         object_shader.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap_texture);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+        object_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
+        object_shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
+
+        object_shader.set_uniform("u_cube", int(0));
+        object_shader.set_uniform<float>("u_tile", tile_x, tile_y);
+
+        object_shader.set_uniform("u_tex_gamma_correct", texture_gamma_correction);
+        object_shader.set_uniform("u_blend_gamma_correct", blend_gamma_correction);
+        object_shader.set_uniform("u_badrock_height", badrock_height);
         for (Mesh &mesh : car_meshes) {
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap_texture);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-            object_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
-            object_shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
-
-            object_shader.set_uniform("u_cube", int(0));
-            object_shader.set_uniform<float>("u_tile", tile_x, tile_y);
-
-            object_shader.set_uniform("u_tex_gamma_correct", texture_gamma_correction);
-            object_shader.set_uniform("u_blend_gamma_correct", blend_gamma_correction);
-            object_shader.set_uniform("u_badrock_height", badrock_height);
 
             mesh.draw(object_shader);
         }
