@@ -210,7 +210,12 @@ Mesh genTriangulation(unsigned int width, unsigned int heigth) {
     return Mesh(vertices, indices, std::vector<Material>(), { 2 });
 }
 
-Shadow::Shadow(size_t width, size_t height) : width(width), height(height) {
+Shadow::Shadow(size_t width, size_t height)
+    : width(width)
+    , height(height) {
+
+    glGenFramebuffers(1, &depth_buffer);
+
     glGenTextures(1, &shadow_map);
     glBindTexture(GL_TEXTURE_2D, shadow_map);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
@@ -219,11 +224,12 @@ Shadow::Shadow(size_t width, size_t height) : width(width), height(height) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glCreateBuffers(1, &depth_buffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, depth_buffer);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadow_map, 0);
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
-    glBindBuffer(GL_FRAMEBUFFER, 0);
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Shadow::set_shadow(glm::mat4 light_view) {
