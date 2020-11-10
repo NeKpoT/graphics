@@ -467,6 +467,8 @@ int main(int, char **) {
     glm::vec3 camera_offset_old;
     bool camera_position_new = true;
 
+    glm::vec3 sun_position = glm::normalize(glm::vec3(1, 1, 1));
+
     while (!glfwWindowShouldClose(window)) {
 
         glfwPollEvents();
@@ -535,6 +537,9 @@ int main(int, char **) {
         auto mvp = projection * view * model;
         auto mvp_no_translation = projection * glm::mat4(glm::mat3(view * model));
 
+        auto car_mvp = projection * view * car_model;
+
+
         skybox_shader.use();
         skybox_shader.set_uniform("u_mvp", glm::value_ptr(mvp_no_translation));
         skybox_shader.set_uniform("u_cube", int(0));
@@ -561,6 +566,7 @@ int main(int, char **) {
         for (Mesh &mesh : meshes) {
             mesh.draw();
         }
+        id_shader.set_uniform("u_mvp", glm::value_ptr(car_mvp));
         for (Mesh &mesh : car_meshes) {
             mesh.draw();
         }
@@ -584,12 +590,16 @@ int main(int, char **) {
         moon_shader.set_uniform("u_tex_gamma_correct", texture_gamma_correction);
         moon_shader.set_uniform("u_blend_gamma_correct", blend_gamma_correction);
         moon_shader.set_uniform("u_badrock_height", badrock_height);
+
+        moon_shader.set_uniform("dl_num", 1);
+        moon_shader.set_uniform("dl_dir", -sun_position);
+        moon_shader.set_uniform("dl_light", glm::vec3(1.0f, 1.0f, 1.0f));
+
         for (Mesh &mesh : meshes) {
 
             mesh.draw(moon_shader);
         }
 
-        mvp = projection * view * car_model;
         mvp_no_translation = projection * glm::mat4(glm::mat3(view * car_model));
 
         object_shader.use();
@@ -601,7 +611,7 @@ int main(int, char **) {
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-        object_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
+        object_shader.set_uniform("u_mvp", glm::value_ptr(car_mvp));
         object_shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
 
         object_shader.set_uniform("u_cube", int(0));

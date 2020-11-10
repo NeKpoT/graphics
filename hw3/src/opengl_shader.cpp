@@ -4,9 +4,11 @@
 #include <sstream>
 #include <iostream>
 
+#include <glm/glm.hpp>
+
 namespace
 {
-   std::string read_shader_code(const std::string & fname)
+   std::string read_file(const std::string &fname)
    {
       std::stringstream file_stream;
       try
@@ -18,8 +20,22 @@ namespace
       {
          std::cerr << "Error reading shader file: " << e.what() << std::endl;
       }
+      
       return file_stream.str();
 
+   }
+
+   std::string read_shader_code(const std::string &fname) {
+      std::string file_content = read_file(fname);
+
+      std::string myinclude_text = "#myinclude_light";
+      auto spos = file_content.find(myinclude_text);
+      if (spos != std::string::npos) {
+          std::string lighting = read_file("assets/light.fs");
+          file_content = file_content.replace(spos, myinclude_text.size(), lighting);
+      }
+
+      return file_content;
    }
 }
 
@@ -90,6 +106,17 @@ void shader_t::set_uniform<float>(const std::string& name, float val1, float val
 template<>
 void shader_t::set_uniform<float*>(const std::string& name, float* val) {
    glUniformMatrix4fv(glGetUniformLocation(program_id_, name.c_str()), 1, GL_FALSE, val);
+}
+
+template<>
+void shader_t::set_uniform<glm::vec3>(const std::string& name, glm::vec3 val) {
+   glUniform3f(glGetUniformLocation(program_id_, name.c_str()), val.x, val.y, val.z);
+}
+
+// UNTESTED USE WITH CAUTION
+template<>
+void shader_t::set_uniform<std::vector<glm::vec3>>(const std::string& name, std::vector<glm::vec3> vals) {
+   glUniform3fv(glGetUniformLocation(program_id_, name.c_str()), vals.size(), &vals[0].x);
 }
 
 void shader_t::check_compile_error() {
