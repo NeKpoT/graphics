@@ -143,8 +143,8 @@ void TorMovementModel::move_forvard(int value) {
         glm::vec3 norm = glm::normalize(get_up());
         glm::vec2 xz = glm::vec2(glm::cos(flat_pos.x * 2 * M_PI), glm::sin(flat_pos.x * 2 * M_PI)) * glm::cos(flat_pos.y * 2 * (float)M_PI);
         glm::vec3 true_norm = get_tor_normal();
-
-        float norm_factor = glm::dot(norm, true_norm);
+    
+        float norm_factor = glm::length(glm::cross(glm::normalize(get_forward()), true_norm));
         flat_pos += dir_mod * flat_dir * speed * std::max(0.1f, norm_factor);
 
         cycle_to_one(flat_pos.x);

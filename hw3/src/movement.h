@@ -22,7 +22,7 @@ class TorMovementModel {
   private:
 
     float model_height = 0.2;
-    float speed = 0.01;
+    float speed = 0.001;
 
     glm::vec2 flat_pos = glm::vec2(0, 0);
     glm::vec2 flat_dir = glm::vec2(0, 1);

@@ -514,7 +514,7 @@ int main(int, char **) {
         glm::vec3 camera_position = model_pos + camera_up * 0.3f - forward * 0.3f;
 
         glm::mat4 car_model = glm::translate(model_pos) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f) * 0.02f);
-        car_model = car_model * glm::mat4(glm::mat3(glm::cross(forward, model_up), model_up, forward));
+        car_model = car_model * glm::mat4(glm::mat3(glm::normalize(glm::cross(forward, model_up)), model_up, forward - model_up * glm::dot(model_up, forward)));
         car_model[3][3] = 1;
 
         auto model = glm::mat4(1);
