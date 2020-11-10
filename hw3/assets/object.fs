@@ -20,6 +20,8 @@ uniform float u_texture_a0;
 uniform float u_texture_a1;
 uniform float u_prism_n0;
 uniform float u_prism_n1;
+uniform vec3 u_color0;
+uniform vec3 u_color1;
 
 uniform vec3 u_cam;
 
@@ -44,11 +46,14 @@ const float NO_DETAIL_DIST = 4;
 
 vec4 get_texture(sampler2D tex, vec2 pos) {
     vec4 tex_v = texture(tex, pos);
-    float dist = distance(u_cam, v_out.position);
-    if (dist < NO_DETAIL_DIST) {
-        float detail_a = max(0, (NO_DETAIL_DIST - dist) / (NO_DETAIL_DIST - FULL_DETAIL_DIST)) / 4;
-        tex_v = tex_v * (1 - detail_a) + texture(tex, pos * 10) * detail_a;
+    if (tex_v == vec4(0, 0, 0, 0)) {
+        tex_v = vec4(u_color0, 0);
     }
+    // float dist = distance(u_cam, v_out.position);
+    // if (dist < NO_DETAIL_DIST) {
+    //     float detail_a = max(0, (NO_DETAIL_DIST - dist) / (NO_DETAIL_DIST - FULL_DETAIL_DIST)) / 4;
+    //     tex_v = tex_v * (1 - detail_a) + texture(tex, pos * 10) * detail_a;
+    // }
     return tex_v;
 }
 
@@ -101,12 +106,5 @@ vec3 color(sampler2D u_tex, float u_texture_a, float u_prism_n)
 }
 
 void main() {
-
-    vec3 res_color;
-    if (v_out.h < u_badrock_height) {
-        res_color = color(u_tex1, u_texture_a1, u_prism_n1);
-    } else {
-        res_color = color(u_tex0, u_texture_a0, u_prism_n0);
-    }
-    o_frag_color = vec4(res_color, 1);
+    o_frag_color = vec4(color(u_tex0, u_texture_a0, u_prism_n0), 1);
 }

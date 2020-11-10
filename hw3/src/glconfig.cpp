@@ -68,7 +68,7 @@ void setup_imgui(GLFWwindow *window) {
 }
 
 void load_image(GLuint &texture, const char* filename) {
-    int width, height, channels;
+    int width = 0, height = 0, channels = 0;
     stbi_set_flip_vertically_on_load(false);
     unsigned char *image = stbi_load(
         filename,
@@ -78,7 +78,7 @@ void load_image(GLuint &texture, const char* filename) {
         &channels,
         STBI_rgb);
 
-    std::cout << width << height << channels;
+    std::cout << "Loading " << filename << ' ' << width << ' ' << height << ' ' << channels << std::endl;
 
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -92,9 +92,21 @@ Material::Material(std::string texture_filename, GLfloat texture_a, GLfloat pris
     glGenTextures(1, &texture);
     load_image(texture, texture_filename.c_str());
 }
+Material::Material(float color[], GLfloat texture_a, GLfloat prism_n)
+    : texture_a(texture_a)
+    , prism_n(prism_n) {
+    color_[0] = color[0];
+    color_[1] = color[1];
+    color_[2] = color[2];
+    texture = -1;
+}
 
 GLuint Material::get_texture() const {
     return texture;
+}
+
+glm::vec3 Material::get_color() const {
+    return glm::vec3(color_[0], color_[1], color_[2]);
 }
 
 Mesh::Mesh(std::vector<float> vertices, std::vector<unsigned int> indices, std::vector<Material> materials, std::vector<size_t> attribs)
@@ -144,6 +156,8 @@ void Mesh::draw(shader_t &shader) {
         shader.set_uniform<int>("u_tex" + i_str, i + 1);
         shader.set_uniform<float>("u_texture_a" + i_str, mat.texture_a);
         shader.set_uniform<float>("u_prism_n" + i_str, mat.prism_n);
+
+        shader.set_uniform<float>("u_color" + i_str, mat.get_color().x, mat.get_color().y, mat.get_color().z);
     }
     draw();
 }

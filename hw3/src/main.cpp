@@ -229,7 +229,12 @@ std::vector<Mesh> load_object(std::string path, std::string filename) {
 
     std::vector<Material> mats;
     for (size_t i = 0; i < materials.size(); i++) {
-        mats.emplace_back(std::string(path) + materials[i].diffuse_texname);
+        auto &material = materials[i];
+        if (material.diffuse_texname != "") {
+            mats.emplace_back(std::string(path) + material.diffuse_texname);
+        } else {
+            mats.emplace_back(material.diffuse);
+        }
     }
 
     return create_object(attrib, shapes, mats);
@@ -424,7 +429,7 @@ std::pair<Mesh, TorMovementModel> make_torus(
 int main(int, char **) {
     GLFWwindow *window = init_window();
 
-    std::vector<Mesh> car_meshes = load_object("assets/chair", "baby_high_chair.obj");
+    std::vector<Mesh> car_meshes = load_object("assets/chair/", "baby_high_chair.obj");
 
     GLuint cubemap_texture;
     load_cubemap(cubemap_texture);
@@ -435,6 +440,7 @@ int main(int, char **) {
 
     // init shaders
     shader_t skybox_shader("assets/skybox.vs", "assets/skybox.fs");
+    shader_t moon_shader("assets/moon.vs", "assets/moon.fs");
     shader_t object_shader("assets/object.vs", "assets/object.fs");
     shader_t id_shader("assets/id.vs", "assets/id.fs");
 
@@ -548,7 +554,7 @@ int main(int, char **) {
         }
 
         glColorMask(1, 1, 1, 1);
-        object_shader.use();
+        moon_shader.use();
         for (Mesh &mesh : meshes) {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap_texture);
@@ -558,22 +564,23 @@ int main(int, char **) {
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-            object_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
-            object_shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
+            moon_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
+            moon_shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
 
-            object_shader.set_uniform("u_cube", int(0));
-            object_shader.set_uniform<float>("u_tile", tile_x, tile_y);
+            moon_shader.set_uniform("u_cube", int(0));
+            moon_shader.set_uniform<float>("u_tile", tile_x, tile_y);
 
-            object_shader.set_uniform("u_tex_gamma_correct", texture_gamma_correction);
-            object_shader.set_uniform("u_blend_gamma_correct", blend_gamma_correction);
-            object_shader.set_uniform("u_badrock_height", badrock_height);
+            moon_shader.set_uniform("u_tex_gamma_correct", texture_gamma_correction);
+            moon_shader.set_uniform("u_blend_gamma_correct", blend_gamma_correction);
+            moon_shader.set_uniform("u_badrock_height", badrock_height);
 
-            mesh.draw(object_shader);
+            mesh.draw(moon_shader);
         }
 
         mvp = projection * view * car_model;
         mvp_no_translation = projection * glm::mat4(glm::mat3(view * car_model));
 
+        object_shader.use();
         for (Mesh &mesh : car_meshes) {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap_texture);

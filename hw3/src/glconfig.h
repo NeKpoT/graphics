@@ -47,13 +47,16 @@ void crop_abs(T& x, T max_abs) {
 class Material {
   public:
     Material(std::string texture_filename, GLfloat texture_a = 1, GLfloat prism_n = 0);
+    Material(float color[], GLfloat texture_a = 1, GLfloat prism_n = 0);
 
     GLuint get_texture() const;
+    glm::vec3 get_color() const;
 
     const GLfloat texture_a;
     const GLfloat prism_n;
   private:
     GLuint texture;
+    float color_[3];
 };
 
 class Mesh {
