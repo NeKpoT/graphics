@@ -424,14 +424,7 @@ std::pair<Mesh, TorMovementModel> make_torus(
 int main(int, char **) {
     GLFWwindow *window = init_window();
 
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-    if (!load_object(attrib, shapes, materials)) {
-        return 0;
-    }
-
-    std::vector<Mesh> meshes = create_object(attrib, shapes, mats);
+    std::vector<Mesh> car_meshes = load_object("assets/reflex_camera", "reflex_camera.obj");
 
     GLuint cubemap_texture;
     load_cubemap(cubemap_texture);
@@ -463,7 +456,7 @@ int main(int, char **) {
     int tile_x = 8;
     int tile_y = std::max(1, int(tile_x * r / R));
 
-    meshes = std::vector<Mesh>(1, tor);
+    std::vector<Mesh> meshes = std::vector<Mesh>(1, tor);
 
     while (!glfwWindowShouldClose(window)) {
 
@@ -506,18 +499,23 @@ int main(int, char **) {
         // Pass the parameters to the shader as uniforms
         float const time_from_start = (float)(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start_time).count() / 1000.0);
 
-        glm::vec3 forward = mmodel.get_forward();
+        glm::vec3 model_pos = mmodel.get_pos();
+        glm::vec3 forward = glm::normalize(mmodel.get_forward());
         glm::vec3 model_up = mmodel.get_up();
         glm::vec3 tor_up = mmodel.get_tor_normal();
-        glm::vec3 up = glm::normalize(model_up + tor_up);
-        glm::vec3 camera_position = mmodel.get_pos() + up * 0.3f - forward * 0.3f;
-        // forward -= glm::dot(forward, up) * up;
+
+        glm::vec3 camera_up = glm::normalize(model_up + tor_up);
+        glm::vec3 camera_position = model_pos + camera_up * 0.3f - forward * 0.3f;
+
+        glm::mat4 car_model = glm::translate(model_pos) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f) * 0.1f);
+        car_model = car_model * glm::mat4(glm::mat3(forward, model_up, glm::cross(forward, model_up)));
+        car_model[3][3] = 1;
 
         auto model = glm::mat4(1);
         auto view = glm::lookAt<float>(
             camera_position,
-            camera_position + forward, 
-            up);
+            model_pos + forward,
+            camera_up);
         auto projection = glm::perspective<float>(glm::radians(fovy), float(display_w) / display_h, 0.1, 100);
         auto mvp = projection * view * model;
         auto mvp_no_translation = projection * glm::mat4(glm::mat3(view * model));
@@ -552,6 +550,31 @@ int main(int, char **) {
         glColorMask(1, 1, 1, 1);
         object_shader.use();
         for (Mesh &mesh : meshes) {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap_texture);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+            object_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
+            object_shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
+
+            object_shader.set_uniform("u_cube", int(0));
+            object_shader.set_uniform<float>("u_tile", tile_x, tile_y);
+
+            object_shader.set_uniform("u_tex_gamma_correct", texture_gamma_correction);
+            object_shader.set_uniform("u_blend_gamma_correct", blend_gamma_correction);
+            object_shader.set_uniform("u_badrock_height", badrock_height);
+
+            mesh.draw(object_shader);
+        }
+
+        mvp = projection * view * car_model;
+        mvp_no_translation = projection * glm::mat4(glm::mat3(view * car_model));
+
+        for (Mesh &mesh : car_meshes) {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap_texture);
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
