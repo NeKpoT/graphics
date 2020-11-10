@@ -464,6 +464,9 @@ int main(int, char **) {
 
     std::vector<Mesh> meshes = std::vector<Mesh>(1, tor);
 
+    glm::vec3 camera_offset_old;
+    bool camera_position_new = true;
+
     while (!glfwWindowShouldClose(window)) {
 
         glfwPollEvents();
@@ -511,7 +514,13 @@ int main(int, char **) {
         glm::vec3 tor_up = mmodel.get_tor_normal();
 
         glm::vec3 camera_up = glm::normalize(model_up + tor_up);
-        glm::vec3 camera_position = model_pos + camera_up * 0.3f - forward * 0.3f;
+        glm::vec3 camera_offset_desired = camera_up * 0.3f - forward * 0.3f;
+        if (camera_position_new) {
+            camera_offset_old = camera_offset_desired;
+            camera_position_new = false;
+        }
+        glm::vec3 camera_position = model_pos + camera_offset_desired * 0.05f + camera_offset_old * 0.95f;
+        camera_offset_old = camera_position - model_pos;
 
         glm::mat4 car_model = glm::translate(model_pos) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f) * 0.02f);
         car_model = car_model * glm::mat4(glm::mat3(glm::normalize(glm::cross(forward, model_up)), model_up, forward - model_up * glm::dot(model_up, forward)));
