@@ -9,7 +9,7 @@
 
 class TorMovementModel {
   public:
-    TorMovementModel(std::vector<float> geometry, float r, float R, size_t vertex_size, size_t pos_off, size_t flat_pos_off, size_t height_off, size_t norm_off);
+    TorMovementModel(std::vector<float> geometry, float r, float R, size_t vertex_size, size_t pos_off, size_t flat_pos_off, size_t height_off, size_t norm_off, int x_frag, int y_frag);
 
     glm::vec3 get_pos();
     glm::vec3 get_up();
@@ -30,6 +30,8 @@ class TorMovementModel {
 
     const float r;
     const float R;
+    const int x_frag;
+    const int y_frag;
     const std::vector<float> geometry;
     const size_t vertex_size;
     const size_t pos_off;

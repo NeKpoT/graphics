@@ -11,7 +11,8 @@ TorMovementModel::TorMovementModel(
     size_t pos_off,
     size_t flat_pos_off,
     size_t height_off,
-    size_t norm_off)
+    size_t norm_off, 
+    int x_frag, int y_frag)
     : R(R)
     , r(r)
     , geometry(geometry)
@@ -19,7 +20,9 @@ TorMovementModel::TorMovementModel(
     , pos_off(pos_off)
     , flat_pos_off(flat_pos_off)
     , height_off(height_off)
-    , norm_off(norm_off) {
+    , norm_off(norm_off)
+    , x_frag(x_frag)
+    , y_frag(y_frag) {
     set_face();
 }
 
@@ -71,15 +74,19 @@ glm::vec3 TorMovementModel::face_coord(size_t face, glm::vec2 flat_c) {
 size_t TorMovementModel::find_face(glm::vec2 flat_coord) {
     // TODO replace using grid knowlege
 
+    int x_i = int(flat_coord.x * x_frag);
+    int y_i = int(flat_coord.y * y_frag);
+    int num = x_i * (y_frag * 2) + y_i * 2;
+
     size_t fc = faces_count();
-    for (size_t face = 0; face < fc; face++) {
+    for (size_t face = num; face < num + 2; face++) {
         glm::vec3 vc = face_coord(face, flat_pos);
         if (vc.x >= -eps && vc.y >= -eps && vc.z >= -eps) {
             return face;
         }
     }
 
-    return -1;
+    return num;
 }
 
 void TorMovementModel::set_face() {

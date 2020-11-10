@@ -16,13 +16,14 @@ out vx_output_t v_out;
 
 uniform mat4 u_mvp;
 uniform vec3 u_cam;
+uniform mat4 u_m;
 
 uniform vec2 u_tile;
 
 void main()
 {
-    v_out.normal = normal;
-    v_out.position = in_position;
+    v_out.normal = normalize(mat3(u_m) * normal);
+    v_out.position = vec3(u_m * vec4(in_position, 1));
     v_out.texcoord = texcoord;
     v_out.texcoord *= u_tile;
     v_out.h = h;

@@ -281,8 +281,8 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
 }
 
 std::pair<Mesh, TorMovementModel> make_torus(
-    unsigned int latitude_size, 
     unsigned int longitude_size, 
+    unsigned int latitude_size, 
     float r, 
     float R, 
     float height_mult, 
@@ -339,7 +339,7 @@ std::pair<Mesh, TorMovementModel> make_torus(
     load_image(normal_map, "assets/normal_map.png");
 
     // CREATE BUFFERS
-    Mesh plane = genTriangulation(latitude_size, longitude_size);
+    Mesh plane = genTriangulation(longitude_size, latitude_size);
     GLuint outbuff;
     glGenBuffers(1, &outbuff);
     glBindBuffer(GL_ARRAY_BUFFER, outbuff);
@@ -419,7 +419,8 @@ std::pair<Mesh, TorMovementModel> make_torus(
         result_data,
         r, R,
         vertex_size,
-        0, 6, 8, 3);
+        0, 6, 8, 3,
+        longitude_size, latitude_size);
 
     Mesh tor_mesh = Mesh(result_data, indices, std::vector<Material> { moon_mat, steel_mat }, { 3, 3, 2, 1 });
 
@@ -454,7 +455,7 @@ int main(int, char **) {
     auto const start_time = std::chrono::steady_clock::now();
 
     float r = 0.7, R = 5, height_mult = 0.8, badrock_height = 0.4;
-    auto tmp = make_torus(300, 300, r, R, height_mult, badrock_height);
+    auto tmp = make_torus(300, std::max(5, int(300 * r / R)), r, R, height_mult, badrock_height);
     Mesh tor = tmp.first;
     TorMovementModel mmodel = tmp.second;
     model_p = &mmodel;
@@ -465,9 +466,11 @@ int main(int, char **) {
     std::vector<Mesh> meshes = std::vector<Mesh>(1, tor);
 
     glm::vec3 camera_offset_old;
+    glm::vec3 camera_center_old;
+    glm::vec3 camera_up_old;
     bool camera_position_new = true;
+    float camera_smooth_coeff = 0.95;
 
-    glm::vec3 sun_position = glm::normalize(glm::vec3(1, 1, 1));
 
     while (!glfwWindowShouldClose(window)) {
 
@@ -510,28 +513,48 @@ int main(int, char **) {
         // Pass the parameters to the shader as uniforms
         float const time_from_start = (float)(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start_time).count() / 1000.0);
 
+
+        glm::vec3 sun_position = glm::vec3(
+            glm::rotate(
+                time_from_start * 2 * float(M_PI) / 300, 
+                glm::vec3(-1.0f, 1.0f, 1.0f)) * glm::normalize(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f))
+        );
+
+
         glm::vec3 model_pos = mmodel.get_pos();
         glm::vec3 forward = glm::normalize(mmodel.get_forward());
         glm::vec3 model_up = mmodel.get_up();
         glm::vec3 tor_up = mmodel.get_tor_normal();
 
-        glm::vec3 camera_up = glm::normalize(model_up + tor_up);
-        glm::vec3 camera_offset_desired = camera_up * 0.3f - forward * 0.3f;
+        glm::vec3 camera_offset_desired = model_up * 0.15f + tor_up * 0.15f - forward * 0.3f;
+        glm::vec3 camera_center_desired = model_pos + forward;
+        glm::vec3 camera_up_desired = glm::normalize(model_up + tor_up);
+
         if (camera_position_new) {
             camera_offset_old = camera_offset_desired;
+            camera_center_old = camera_center_desired;
+            camera_up_old = camera_up_desired;
             camera_position_new = false;
         }
-        glm::vec3 camera_position = model_pos + camera_offset_desired * 0.05f + camera_offset_old * 0.95f;
-        camera_offset_old = camera_position - model_pos;
+
+        glm::vec3 camera_offset = glm::mix(camera_offset_desired, camera_offset_old, camera_smooth_coeff);
+        glm::vec3 camera_center = glm::mix(camera_center_desired, camera_center_old, camera_smooth_coeff);
+        glm::vec3 camera_up = glm::mix(camera_up_desired, camera_up_old, camera_smooth_coeff);
+
+        camera_offset_old = camera_offset;
+        camera_offset_old = camera_offset;
+        camera_center_old = camera_center;
+        camera_up_old = camera_up;
 
         glm::mat4 car_model = glm::translate(model_pos) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f) * 0.02f);
         car_model = car_model * glm::mat4(glm::mat3(glm::normalize(glm::cross(forward, model_up)), model_up, forward - model_up * glm::dot(model_up, forward)));
         car_model[3][3] = 1;
 
+        glm::vec3 camera_position = model_pos + camera_offset;
         auto model = glm::mat4(1);
         auto view = glm::lookAt<float>(
             camera_position,
-            model_pos + forward,
+            camera_center,
             camera_up);
         auto projection = glm::perspective<float>(glm::radians(fovy), float(display_w) / display_h, 0.1, 100);
         auto mvp = projection * view * model;
@@ -580,23 +603,26 @@ int main(int, char **) {
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        auto pass_everything_lambda = [&](shader_t &shader) {
+            shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
 
+            shader.set_uniform("u_cube", int(0));
+            shader.set_uniform<float>("u_tile", tile_x, tile_y);
+
+            shader.set_uniform("u_tex_gamma_correct", texture_gamma_correction);
+            shader.set_uniform("u_blend_gamma_correct", blend_gamma_correction);
+
+            shader.set_uniform("dl_num", 1);
+            shader.set_uniform("dl_dir", -sun_position);
+            shader.set_uniform("dl_light", glm::vec3(1.0f, 1.0f, 1.0f));
+        };
+
+        moon_shader.set_uniform("u_m", glm::value_ptr(model));
         moon_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
-        moon_shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
-
-        moon_shader.set_uniform("u_cube", int(0));
-        moon_shader.set_uniform<float>("u_tile", tile_x, tile_y);
-
-        moon_shader.set_uniform("u_tex_gamma_correct", texture_gamma_correction);
-        moon_shader.set_uniform("u_blend_gamma_correct", blend_gamma_correction);
         moon_shader.set_uniform("u_badrock_height", badrock_height);
-
-        moon_shader.set_uniform("dl_num", 1);
-        moon_shader.set_uniform("dl_dir", -sun_position);
-        moon_shader.set_uniform("dl_light", glm::vec3(1.0f, 1.0f, 1.0f));
+        pass_everything_lambda(moon_shader);
 
         for (Mesh &mesh : meshes) {
-
             mesh.draw(moon_shader);
         }
 
@@ -611,17 +637,11 @@ int main(int, char **) {
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
+        object_shader.set_uniform("u_m", glm::value_ptr(car_model));
         object_shader.set_uniform("u_mvp", glm::value_ptr(car_mvp));
-        object_shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
+        pass_everything_lambda(object_shader);
 
-        object_shader.set_uniform("u_cube", int(0));
-        object_shader.set_uniform<float>("u_tile", tile_x, tile_y);
-
-        object_shader.set_uniform("u_tex_gamma_correct", texture_gamma_correction);
-        object_shader.set_uniform("u_blend_gamma_correct", blend_gamma_correction);
-        object_shader.set_uniform("u_badrock_height", badrock_height);
         for (Mesh &mesh : car_meshes) {
-
             mesh.draw(object_shader);
         }
 

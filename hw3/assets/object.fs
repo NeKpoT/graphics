@@ -1,5 +1,7 @@
 #version 330 core
 
+#myinclude_light
+
 out vec4 o_frag_color;
 
 struct vx_output_t
@@ -28,8 +30,6 @@ uniform vec3 u_cam;
 uniform bool u_tex_gamma_correct;
 uniform bool u_blend_gamma_correct;
 
-uniform float u_badrock_height;
-
 const float GAMMA = 2.2;
 const float UNGAMMA = 1 / GAMMA;
 
@@ -49,11 +49,6 @@ vec4 get_texture(sampler2D tex, vec2 pos) {
     if (tex_v == vec4(0, 0, 0, 0)) {
         tex_v = vec4(u_color0, 0);
     }
-    // float dist = distance(u_cam, v_out.position);
-    // if (dist < NO_DETAIL_DIST) {
-    //     float detail_a = max(0, (NO_DETAIL_DIST - dist) / (NO_DETAIL_DIST - FULL_DETAIL_DIST)) / 4;
-    //     tex_v = tex_v * (1 - detail_a) + texture(tex, pos * 10) * detail_a;
-    // }
     return tex_v;
 }
 
@@ -81,6 +76,7 @@ vec3 color(sampler2D u_tex, float u_texture_a, float u_prism_n)
     float r_prism = 1 - r_ref;
     
     vec3 tex = get_texture(u_tex, v_out.texcoord).rgb;
+    tex = get_light(v_out.position, u_cam, v_out.normal, tex, 0.0, vec3(1, 1, 1) * 0.5);
 
     if (u_tex_gamma_correct) {
         tex = gamma(tex);
