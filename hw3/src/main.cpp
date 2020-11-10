@@ -417,7 +417,7 @@ std::pair<Mesh, TorMovementModel> make_torus(
     // INIT RETURNED VALUES
     TorMovementModel model = TorMovementModel(
         result_data,
-        r, r,
+        r, R,
         vertex_size,
         0, 6, 8, 3);
 

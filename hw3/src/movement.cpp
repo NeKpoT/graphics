@@ -153,5 +153,11 @@ void TorMovementModel::move_forvard(int value) {
     }
 }
 void TorMovementModel::rotate(float alpha) {
+    flat_dir.x *= R;
+    flat_dir.y *= r;
     flat_dir = glm::vec2(glm::rotate(alpha, glm::vec3(0, 0, 1)) * glm::vec4(flat_dir, 0, 1));
+    flat_dir.x /= R;
+    flat_dir.y /= r;
+
+    flat_dir = glm::normalize(flat_dir);
 }
