@@ -424,7 +424,7 @@ std::pair<Mesh, TorMovementModel> make_torus(
 int main(int, char **) {
     GLFWwindow *window = init_window();
 
-    std::vector<Mesh> car_meshes = load_object("assets/reflex_camera", "reflex_camera.obj");
+    std::vector<Mesh> car_meshes = load_object("assets/chair", "baby_high_chair.obj");
 
     GLuint cubemap_texture;
     load_cubemap(cubemap_texture);
@@ -507,8 +507,8 @@ int main(int, char **) {
         glm::vec3 camera_up = glm::normalize(model_up + tor_up);
         glm::vec3 camera_position = model_pos + camera_up * 0.3f - forward * 0.3f;
 
-        glm::mat4 car_model = glm::translate(model_pos) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f) * 0.1f);
-        car_model = car_model * glm::mat4(glm::mat3(forward, model_up, glm::cross(forward, model_up)));
+        glm::mat4 car_model = glm::translate(model_pos) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f) * 0.02f);
+        car_model = car_model * glm::mat4(glm::mat3(glm::cross(forward, model_up), model_up, forward));
         car_model[3][3] = 1;
 
         auto model = glm::mat4(1);
