@@ -517,7 +517,7 @@ int main(int, char **) {
         glm::vec3 sun_position = glm::vec3(
             glm::rotate(
                 time_from_start * 2 * float(M_PI) / 300, 
-                glm::vec3(-1.0f, 1.0f, 1.0f)) * glm::normalize(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f))
+                glm::vec3(-1.0f, 1.0f, 1.0f)) * glm::normalize(glm::vec4(1.0f, 1.0f, 1.0f, 0))
         );
 
 
@@ -566,6 +566,9 @@ int main(int, char **) {
         skybox_shader.use();
         skybox_shader.set_uniform("u_mvp", glm::value_ptr(mvp_no_translation));
         skybox_shader.set_uniform("u_cube", int(0));
+        skybox_shader.set_uniform("dl_num", 1);
+        skybox_shader.set_uniform("dl_dir", -sun_position);
+        skybox_shader.set_uniform("dl_light", glm::vec3(1.0f, 1.0f, 1.0f));
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap_texture);
@@ -615,6 +618,14 @@ int main(int, char **) {
             shader.set_uniform("dl_num", 1);
             shader.set_uniform("dl_dir", -sun_position);
             shader.set_uniform("dl_light", glm::vec3(1.0f, 1.0f, 1.0f));
+
+            shader.set_uniform("pd_num", 1);
+            shader.set_uniform("pd_dir", forward);
+            shader.set_uniform("pd_pos", model_pos + model_up * 0.5f);
+            shader.set_uniform("pd_light", glm::vec3(1.0f, 1.0f, 0.5f) * 0.5f);
+            shader.set_uniform("pd_angle", 0.5f);
+
+            shader.set_uniform("background_light", glm::vec3(1, 1, 1) * 0.4f);
         };
 
         moon_shader.set_uniform("u_m", glm::value_ptr(model));
