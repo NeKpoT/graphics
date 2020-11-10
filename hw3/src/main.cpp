@@ -240,7 +240,7 @@ std::vector<Mesh> load_object(std::string path, std::string filename) {
     return create_object(attrib, shapes, mats);
 }
 
-static float pitch;
+static float pitch = 0.2;
 static float rotation;
 static TorMovementModel *model_p = nullptr;
 
@@ -259,17 +259,17 @@ void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
 
 void mouse_moved(GLFWwindow *window, double xoffset, double yoffset) {
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)) {
+        if (model_p != nullptr) {
+            model_p->rotate(xoffset * MOUSE_SENS);
+        }
+
         rotation += xoffset * MOUSE_SENS;
         pitch += yoffset * MOUSE_SENS;
-        crop_abs(pitch, 0.5f);
+        crop_interval(pitch, 0.1f, 0.5f);
         if (rotation > 2)
             rotation -= 2;
         if (rotation < 0)
             rotation += 2;
-    }
-
-    if (model_p != nullptr) {
-        model_p->rotate(xoffset * MOUSE_SENS);
     }
 }
 
@@ -526,9 +526,11 @@ int main(int, char **) {
         glm::vec3 model_up = mmodel.get_up();
         glm::vec3 tor_up = mmodel.get_tor_normal();
 
-        glm::vec3 camera_offset_desired = model_up * 0.15f + tor_up * 0.15f - forward * 0.3f;
-        glm::vec3 camera_center_desired = model_pos + forward;
         glm::vec3 camera_up_desired = glm::normalize(model_up + tor_up);
+        glm::vec3 camera_offset_desired = 
+            0.1f * camera_up_desired + 0.2f * forward +
+            0.4f * glm::mat3(glm::rotate((-pitch + 0.5f) * float(M_PI), glm::normalize(glm::cross(forward, camera_up_desired)))) * camera_up_desired;
+        glm::vec3 camera_center_desired = model_pos + 0.3f * forward;
 
         if (camera_position_new) {
             camera_offset_old = camera_offset_desired;
@@ -620,7 +622,7 @@ int main(int, char **) {
             shader.set_uniform("dl_light", glm::vec3(1.0f, 1.0f, 1.0f));
 
             shader.set_uniform("pd_num", 1);
-            shader.set_uniform("pd_dir", forward);
+            shader.set_uniform("pd_dir", forward - 0.2f * model_up);
             shader.set_uniform("pd_pos", model_pos + model_up * 0.5f);
             shader.set_uniform("pd_light", glm::vec3(1.0f, 1.0f, 0.5f) * 0.5f);
             shader.set_uniform("pd_angle", 0.5f);
