@@ -75,3 +75,21 @@ class Mesh {
 };
 
 Mesh genTriangulation(unsigned int width, unsigned int heigth);
+
+class Shadow {
+  public:
+    Shadow(size_t width, size_t height);
+
+    void set_shadow(glm::mat4 light_view);
+    void unset_shadow();
+
+    glm::mat4 view;
+
+    GLuint get_shadow_map();
+
+  private:
+    const size_t width, height;
+
+    GLuint shadow_map;
+    GLuint depth_buffer;
+};
