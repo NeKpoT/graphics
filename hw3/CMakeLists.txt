@@ -19,6 +19,8 @@ add_executable( opengl-imgui-sample
                 src/opengl_shader.h
                 src/glconfig.cpp
                 src/glconfig.h
+                src/movement.cpp
+                src/movement.h
                 bindings/imgui_impl_glfw.cpp
                 bindings/imgui_impl_opengl3.cpp
                 bindings/imgui_impl_glfw.h

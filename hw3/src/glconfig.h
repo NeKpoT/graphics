@@ -72,7 +72,3 @@ class Mesh {
 };
 
 Mesh genTriangulation(unsigned int width, unsigned int heigth);
-
-Mesh genTorLandscape(const unsigned char* image, unsigned int width, unsigned int heigth);
-
-Mesh genTriangulation2(unsigned int width, unsigned int heigth);

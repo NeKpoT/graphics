@@ -69,7 +69,7 @@ void setup_imgui(GLFWwindow *window) {
 
 void load_image(GLuint &texture, const char* filename) {
     int width, height, channels;
-    stbi_set_flip_vertically_on_load(true);
+    stbi_set_flip_vertically_on_load(false);
     unsigned char *image = stbi_load(
         filename,
         //  "assets/test.png",
@@ -168,7 +168,7 @@ glm::vec3 to_tor(glm::vec3 pos, float R, float r) {
         r * sin(lat_a));
 }
 
-Mesh genTriangulation2(unsigned int width, unsigned int heigth) {
+Mesh genTriangulation(unsigned int width, unsigned int heigth) {
     std::vector<float> vertices;
     for (unsigned int xi = 0; xi < width; xi++) {
         for (unsigned int yi = 0; yi < heigth; yi++) {

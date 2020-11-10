@@ -35,6 +35,8 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
+#include "movement.h"
+
 const double FPS_CAP = 60;
 const double FRAME_TIME_NSECONDS = 1e9 / FPS_CAP;
 
@@ -208,9 +210,34 @@ bool load_object(tinyobj::attrib_t &attrib, std::vector<tinyobj::shape_t> &shape
     return ret;
 }
 
+std::vector<Mesh> load_object(std::string path, std::string filename) {
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+
+    std::string warn, err;
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, filename.c_str());
+
+    if (!warn.empty()) {
+        std::cout << warn << std::endl;
+    }
+    if (!err.empty()) {
+        std::cerr << err << std::endl;
+    }
+
+    if (!ret) { throw "failed loading"; }
+
+    std::vector<Material> mats;
+    for (size_t i = 0; i < materials.size(); i++) {
+        mats.emplace_back(std::string(path) + materials[i].diffuse_texname);
+    }
+
+    return create_object(attrib, shapes, mats);
+}
 
 static float pitch;
 static float rotation;
+static TorMovementModel *model_p = nullptr;
 
 const float SCROLL_STEP = 0.05;
 const float MOUSE_SENS = 0.005;
@@ -219,6 +246,10 @@ static float radius = 1;
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
     radius -= yoffset * SCROLL_STEP;
     crop_interval(radius, 0.1f, 10.0f);
+
+    if (model_p != nullptr) {
+        model_p->move_forvard(yoffset > 0 ? 1 : -1);
+    }
 }
 
 void mouse_moved(GLFWwindow *window, double xoffset, double yoffset) {
@@ -231,6 +262,10 @@ void mouse_moved(GLFWwindow *window, double xoffset, double yoffset) {
         if (rotation < 0)
             rotation += 2;
     }
+
+    if (model_p != nullptr) {
+        model_p->rotate(xoffset * MOUSE_SENS);
+    }
 }
 
 void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
@@ -240,7 +275,13 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
     cursor_position[1] = ypos;
 }
 
-Mesh make_torus(unsigned int latitude_size, unsigned int longitude_size, float r, float R, float height_mult, float badrock_height) {
+std::pair<Mesh, TorMovementModel> make_torus(
+    unsigned int latitude_size, 
+    unsigned int longitude_size, 
+    float r, 
+    float R, 
+    float height_mult, 
+    float badrock_height) {
 
     GLenum error_id;
     const size_t vertex_size = 9;
@@ -287,12 +328,13 @@ Mesh make_torus(unsigned int latitude_size, unsigned int longitude_size, float r
 
     GLuint height_map, normal_map;
     glGenTextures(1, &height_map);
+    // load_image(height_map, "assets/testheight.png");
     load_image(height_map, "assets/testheight.png");
     glGenTextures(1, &normal_map);
     load_image(normal_map, "assets/normal_map.png");
 
     // CREATE BUFFERS
-    Mesh plane = genTriangulation2(latitude_size, longitude_size);
+    Mesh plane = genTriangulation(latitude_size, longitude_size);
     GLuint outbuff;
     glGenBuffers(1, &outbuff);
     glBindBuffer(GL_ARRAY_BUFFER, outbuff);
@@ -367,7 +409,16 @@ Mesh make_torus(unsigned int latitude_size, unsigned int longitude_size, float r
     //     }
     // }
 
-    return Mesh(result_data, indices, std::vector<Material> { moon_mat, steel_mat }, { 3, 3, 2, 1 });
+    // INIT RETURNED VALUES
+    TorMovementModel model = TorMovementModel(
+        result_data,
+        r, r,
+        vertex_size,
+        0, 6, 8, 3);
+
+    Mesh tor_mesh = Mesh(result_data, indices, std::vector<Material> { moon_mat, steel_mat }, { 3, 3, 2, 1 });
+
+    return { tor_mesh, model };
 }
 
 int main(int, char **) {
@@ -378,11 +429,6 @@ int main(int, char **) {
     std::vector<tinyobj::material_t> materials;
     if (!load_object(attrib, shapes, materials)) {
         return 0;
-    }
-
-    std::vector<Material> mats;
-    for (size_t i = 0; i < materials.size(); i++) {
-        mats.emplace_back(std::string("assets/reflex_camera/") + materials[i].diffuse_texname);
     }
 
     std::vector<Mesh> meshes = create_object(attrib, shapes, mats);
@@ -409,7 +455,13 @@ int main(int, char **) {
     auto const start_time = std::chrono::steady_clock::now();
 
     float r = 0.7, R = 5, height_mult = 0.8, badrock_height = 0.4;
-    Mesh tor = make_torus(300, 300, r, R, height_mult, badrock_height);
+    auto tmp = make_torus(300, 300, r, R, height_mult, badrock_height);
+    Mesh tor = tmp.first;
+    TorMovementModel mmodel = tmp.second;
+    model_p = &mmodel;
+
+    int tile_x = 8;
+    int tile_y = std::max(1, int(tile_x * r / R));
 
     meshes = std::vector<Mesh>(1, tor);
 
@@ -454,21 +506,21 @@ int main(int, char **) {
         // Pass the parameters to the shader as uniforms
         float const time_from_start = (float)(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start_time).count() / 1000.0);
 
-        auto model = glm::rotate(
-            glm::rotate(
-                glm::mat4(1), 
-                pitch * glm::pi<float>(), 
-                glm::vec3(1, 0, 0)) * glm::scale(glm::vec3(1, 1, 1)),
-            rotation * glm::pi<float>(), 
-            glm::vec3(0, 1, 0)
-        );
-        auto view = glm::lookAt<float>(glm::vec3(0, 0, radius), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+        glm::vec3 forward = mmodel.get_forward();
+        glm::vec3 model_up = mmodel.get_up();
+        glm::vec3 tor_up = mmodel.get_tor_normal();
+        glm::vec3 up = glm::normalize(model_up + tor_up);
+        glm::vec3 camera_position = mmodel.get_pos() + up * 0.3f - forward * 0.3f;
+        // forward -= glm::dot(forward, up) * up;
+
+        auto model = glm::mat4(1);
+        auto view = glm::lookAt<float>(
+            camera_position,
+            camera_position + forward, 
+            up);
         auto projection = glm::perspective<float>(glm::radians(fovy), float(display_w) / display_h, 0.1, 100);
         auto mvp = projection * view * model;
         auto mvp_no_translation = projection * glm::mat4(glm::mat3(view * model));
-
-        
-        glm::vec3 camera_position = (glm::inverse(view * model) * glm::vec4(0, 0, 0, 1));
 
         skybox_shader.use();
         skybox_shader.set_uniform("u_mvp", glm::value_ptr(mvp_no_translation));
@@ -512,7 +564,7 @@ int main(int, char **) {
             object_shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
 
             object_shader.set_uniform("u_cube", int(0));
-            object_shader.set_uniform("u_tile", 8.0f, 3.0f);
+            object_shader.set_uniform<float>("u_tile", tile_x, tile_y);
 
             object_shader.set_uniform("u_tex_gamma_correct", texture_gamma_correction);
             object_shader.set_uniform("u_blend_gamma_correct", blend_gamma_correction);
@@ -540,6 +592,8 @@ int main(int, char **) {
 
     glfwDestroyWindow(window);
     glfwTerminate();
+
+    model_p = nullptr;
 
     return 0;
 }
