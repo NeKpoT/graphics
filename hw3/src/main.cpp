@@ -493,7 +493,7 @@ int main(int, char **) {
 
         glm::vec3 camera_up_desired = glm::normalize(model_up + tor_up);
         glm::vec3 camera_offset_desired = 
-            0.1f * camera_up_desired + 0.2f * forward +
+            0.3f * camera_up_desired + 0.2f * forward +
             0.4f * glm::mat3(glm::rotate((-pitch + 0.5f) * float(M_PI), glm::normalize(glm::cross(forward, camera_up_desired)))) * camera_up_desired;
         camera_offset_desired *= camera_radius_mult;
         glm::vec3 camera_center_desired = model_pos + 0.3f * forward;
