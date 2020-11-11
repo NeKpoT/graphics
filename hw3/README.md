@@ -17,4 +17,4 @@ Click and drag to rotate camera. Scroll to move forward or backward. Change came
 * ✓ sun
 * ✓ torch fixed on a model
 * ✓ shadows from everything
-* × no detail shadows
+* × no detailed shadows
