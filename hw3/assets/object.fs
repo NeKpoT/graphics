@@ -76,6 +76,7 @@ vec3 color(sampler2D u_tex, float u_texture_a, float u_prism_n)
     float r_prism = 1 - r_ref;
     
     vec3 tex = get_texture(u_tex, v_out.texcoord).rgb;
+    // tex = ungamma(tex);
     tex = get_light(v_out.position, u_cam, v_out.normal, tex, 0.8);
 
     if (u_tex_gamma_correct) {

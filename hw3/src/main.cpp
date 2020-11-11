@@ -430,7 +430,7 @@ std::pair<Mesh, TorMovementModel> make_torus(
 int main(int, char **) {
     GLFWwindow *window = init_window();
 
-    std::vector<Mesh> car_meshes = load_object("assets/chair/", "baby_high_chair.obj");
+    std::vector<Mesh> car_meshes = load_object("assets/rov/", "MSL_clean.obj");
 
     GLuint cubemap_texture;
     load_cubemap(cubemap_texture);
@@ -476,7 +476,10 @@ int main(int, char **) {
     Shadow sun_shadow = Shadow(2048 * 4, 2048 * 4);
     Shadow torch_shadow = Shadow(512, 512);
 
+    // controls
     static float fovy = 90;
+    static float sun_speed_log = -5;
+    static float sun_start_a = 0;
 
     while (!glfwWindowShouldClose(window)) {
 
@@ -490,7 +493,7 @@ int main(int, char **) {
         float const time_from_start = (float)(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start_time).count() / 1000.0);
 
         glm::mat4 sun_rotation = glm::rotate(
-            time_from_start * 2 * float(M_PI) / 300 * 10,
+            sun_start_a + time_from_start * 2 * float(M_PI) * powf(2, sun_speed_log),
             glm::vec3(-1.0f, 1.0f, 1.0f));
 
         glm::vec3 sun_position = glm::vec3(sun_rotation * glm::normalize(glm::vec4(1.0f, 1.0f, 1.0f, 0)));
@@ -523,7 +526,7 @@ int main(int, char **) {
         camera_center_old = camera_center;
         camera_up_old = camera_up;
 
-        glm::mat4 car_model = glm::translate(model_pos) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f) * 0.02f);
+        glm::mat4 car_model = glm::translate(model_pos) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f) * 0.09f);
         car_model = car_model * glm::mat4(glm::mat3(glm::normalize(glm::cross(forward, model_up)), model_up, forward - model_up * glm::dot(model_up, forward)));
         car_model[3][3] = 1;
 
@@ -561,8 +564,8 @@ int main(int, char **) {
 
         sun_shadow.unset_shadow();
 
-        glm::vec3 torch_dir = forward - 0.1f * model_up;
-        glm::vec3 torch_pos = model_pos + model_up * 0.07f;
+        glm::vec3 torch_dir = forward * 1.2f - 0.1f * model_up;
+        glm::vec3 torch_pos = model_pos + model_up * 0.07f + forward * 0.2f;
 
 
         // get torch shadow
@@ -609,6 +612,8 @@ int main(int, char **) {
         ImGui::Begin("Triangle Position/Color");
         static float fovy = 90;
         ImGui::SliderFloat("fovy", &fovy, 10, 180);
+        ImGui::SliderFloat("sun start a", &sun_start_a, 0, 2 * M_PI);
+        ImGui::SliderFloat("sun speed log", &sun_speed_log, -20, 0);
 
         static bool texture_gamma_correction = true;
         ImGui::Checkbox("texture gamma correction", &texture_gamma_correction);
@@ -662,11 +667,8 @@ int main(int, char **) {
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-        glActiveTexture(GL_TEXTURE10);
-        glBindTexture(GL_TEXTURE_2D, sun_shadow.get_shadow_map());
-
-        glActiveTexture(GL_TEXTURE11);
-        glBindTexture(GL_TEXTURE_2D, torch_shadow.get_shadow_map());
+        sun_shadow.bind_shadow_texture(10);
+        torch_shadow.bind_shadow_texture(11);
 
         auto pass_everything_lambda = [&](shader_t &shader) {
             shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
@@ -717,6 +719,7 @@ int main(int, char **) {
         object_shader.set_uniform("u_m", glm::value_ptr(car_model));
         object_shader.set_uniform("u_mvp", glm::value_ptr(car_mvp));
         pass_everything_lambda(object_shader);
+        // object_shader.set_uniform("background_light", 0.7f, 0.7f, 0.7f);
 
         for (Mesh &mesh : car_meshes) {
             mesh.draw(object_shader);

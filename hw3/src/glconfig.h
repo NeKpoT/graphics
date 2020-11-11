@@ -83,6 +83,8 @@ class Shadow {
     void set_shadow(glm::mat4 light_view);
     void unset_shadow();
 
+    void bind_shadow_texture(unsigned int slot);
+
     glm::mat4 view;
 
     GLuint get_shadow_map();
