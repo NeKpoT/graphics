@@ -471,9 +471,9 @@ int main(int, char **) {
     bool camera_position_new = true;
     float camera_smooth_coeff = 0.95;
 
-    const float max_radius = R + r + height_mult + 1.5;
+    const float max_radius = R + r + height_mult + 1.5 + 10;
 
-    Shadow sun_shadow = Shadow(1024, 1024);
+    Shadow sun_shadow = Shadow(2048 * 4, 2048 * 4);
 
     static float fovy = 90;
 
@@ -489,7 +489,7 @@ int main(int, char **) {
         float const time_from_start = (float)(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start_time).count() / 1000.0);
 
         glm::mat4 sun_rotation = glm::rotate(
-            time_from_start * 2 * float(M_PI) / 300,
+            time_from_start * 2 * float(M_PI) / 300 * 10,
             glm::vec3(-1.0f, 1.0f, 1.0f));
 
         glm::vec3 sun_position = glm::vec3(sun_rotation * glm::normalize(glm::vec4(1.0f, 1.0f, 1.0f, 0)));
@@ -540,7 +540,14 @@ int main(int, char **) {
         auto car_mvp = projection * view * car_model;
 
         // get sun shadow
-        sun_shadow.set_shadow(glm::ortho(-max_radius, max_radius, -max_radius, max_radius, -max_radius, max_radius) * glm::inverse(sun_rotation));
+        sun_shadow.set_shadow(
+            glm::ortho(-max_radius, max_radius, -max_radius, max_radius, -max_radius, max_radius) * 
+            glm::lookAt(
+                sun_position, 
+                glm::vec3(0, 0, 0), 
+                glm::vec3(0, 1, 0)
+            )
+        );
 
         id_shader.use();
         {
@@ -594,7 +601,7 @@ int main(int, char **) {
         skybox_shader.set_uniform("u_mvp", glm::value_ptr(mvp_no_translation));
         skybox_shader.set_uniform("u_cube", int(0));
         skybox_shader.set_uniform("dl_num", 1);
-        skybox_shader.set_uniform("dl_dir", -sun_position);
+        skybox_shader.set_uniform("dl_dir", sun_position);
         skybox_shader.set_uniform("dl_light", glm::vec3(1.0f, 1.0f, 1.0f));
 
         glActiveTexture(GL_TEXTURE0);
@@ -636,6 +643,10 @@ int main(int, char **) {
 
         glActiveTexture(GL_TEXTURE10);
         glBindTexture(GL_TEXTURE_2D, sun_shadow.get_shadow_map());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
         auto pass_everything_lambda = [&](shader_t &shader) {
             shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
@@ -647,7 +658,7 @@ int main(int, char **) {
             shader.set_uniform("u_blend_gamma_correct", blend_gamma_correction);
 
             shader.set_uniform("dl_num", 1);
-            shader.set_uniform("dl_dir", -sun_position);
+            shader.set_uniform("dl_dir", sun_position);
             shader.set_uniform("dl_light", glm::vec3(1.0f, 1.0f, 1.0f));
             shader.set_uniform("dl_depth", 10);
             shader.set_uniform("dl_vp", glm::value_ptr(sun_shadow.view));
