@@ -113,8 +113,9 @@ void main() {
     } else {
         res_color = color(u_tex0, u_texture_a0, u_prism_n0);
     }
-    // res_color = get_light(v_out.position, u_cam, v_out.normal, get_texture(u_tex0, v_out.texcoord).rgb, 0.5, vec3(1, 1, 1) * 0.5);
+
+    // res_color = get_shadow_pd(v_out.position, 0) * vec3(1, 1, 1);
     
     o_frag_color = vec4(res_color, 1);
-    // o_frag_color = vec4(vec3(1, 1, 1) * get_depth(v_out.position), 1);
+    // o_frag_color = vec4(vec3(1, 1, 1) * get_shadow_pd(v_out.position, 0) + o_frag_color.xyz * 0.1, 1);
 }

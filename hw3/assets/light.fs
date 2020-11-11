@@ -16,14 +16,30 @@ uniform vec3 pd_dir[PD_LIGHT_SOURCES];
 uniform vec3 pd_pos[PD_LIGHT_SOURCES];
 uniform vec3 pd_light[PD_LIGHT_SOURCES];
 uniform float pd_angle[PD_LIGHT_SOURCES];
+uniform sampler2D pd_depth[DIR_LIGHT_SOURCES];
+uniform mat4 pd_vp[DIR_LIGHT_SOURCES];
 
-float get_shadow(vec3 obj_pos, int dl_i) {
-    vec3 scoord = (dl_vp[dl_i] * vec4(obj_pos, 1)).xyz / (dl_vp[dl_i] * vec4(obj_pos, 1)).w;
+float get_shadow_dl(vec3 obj_pos, int dl_i) {
+    vec4 scoord = dl_vp[dl_i] * vec4(obj_pos, 1);
+    scoord /= scoord.w;
     scoord = scoord / 2 + 0.5;
     float shadow_depth = texture(dl_depth[dl_i], scoord.xy).x;
 
     // return scoord.z - shadow_depth + 1e-3;
     if (scoord.z - 1e-3 >= shadow_depth)
+        return 0;
+    else
+        return 1;
+}
+
+float get_shadow_pd(vec3 obj_pos, int pd_i) {
+    vec4 scoord = pd_vp[pd_i] * vec4(obj_pos, 1);
+    scoord /= scoord.w;
+    scoord = scoord / 2 + 0.5;
+    float shadow_depth = texture(pd_depth[pd_i], scoord.xy).x;
+
+    // return scoord.z - shadow_depth + 1e-3;
+    if (scoord.z - 1e-2 >= shadow_depth)
         return 0;
     else
         return 1;
@@ -46,7 +62,7 @@ vec3 get_light(vec3 obj_position, vec3 camera_position, vec3 normal, vec3 textur
             light_e * max(0, dot(obj_eye, reflect(dl_dir[dl_i], normal))),
             glossyness_a
         );
-        res_light += light_e * get_shadow(obj_position, dl_i);
+        res_light += light_e * get_shadow_dl(obj_position, dl_i);
     }
 
     for (int pd_i = 0; pd_i < pd_num; pd_i++) {
@@ -64,7 +80,7 @@ vec3 get_light(vec3 obj_position, vec3 camera_position, vec3 normal, vec3 textur
             light_e * max(0, dot(obj_eye, reflect(-source_obj, normal))),
             glossyness_a
         );
-        res_light += light_e;
+        res_light += light_e * get_shadow_pd(obj_position, pd_i);
     }
     
     res_light *= texture_albedo;

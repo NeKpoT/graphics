@@ -474,6 +474,7 @@ int main(int, char **) {
     const float max_radius = R + r + height_mult + 1.5 + 10;
 
     Shadow sun_shadow = Shadow(2048 * 4, 2048 * 4);
+    Shadow torch_shadow = Shadow(512, 512);
 
     static float fovy = 90;
 
@@ -541,13 +542,7 @@ int main(int, char **) {
 
         // get sun shadow
         sun_shadow.set_shadow(
-            glm::ortho(-max_radius, max_radius, -max_radius, max_radius, -max_radius, max_radius) * 
-            glm::lookAt(
-                sun_position, 
-                glm::vec3(0, 0, 0), 
-                glm::vec3(0, 1, 0)
-            )
-        );
+            glm::ortho(-max_radius, max_radius, -max_radius, max_radius, -max_radius, max_radius) * glm::lookAt(sun_position, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)));
 
         id_shader.use();
         {
@@ -565,6 +560,32 @@ int main(int, char **) {
         }
 
         sun_shadow.unset_shadow();
+
+        glm::vec3 torch_dir = forward - 0.1f * model_up;
+        glm::vec3 torch_pos = model_pos + model_up * 0.07f;
+
+
+        // get torch shadow
+        torch_shadow.set_shadow(
+            glm::perspective<float>(glm::radians(90.0), 1, 0.01, 10) *
+            glm::lookAt(torch_pos, torch_pos + torch_dir, model_up));
+
+        id_shader.use();
+        {
+            glm::mat4 shadow_mvp;
+            shadow_mvp = torch_shadow.view * model;
+            id_shader.set_uniform("u_mvp", glm::value_ptr(shadow_mvp));
+            for (Mesh &mesh : meshes) {
+                mesh.draw();
+            }
+            shadow_mvp = torch_shadow.view * car_model;
+            id_shader.set_uniform("u_mvp", glm::value_ptr(shadow_mvp));
+            for (Mesh &mesh : car_meshes) {
+                mesh.draw();
+            }
+        }
+
+        torch_shadow.unset_shadow();
 
         // start actual drawing
 
@@ -643,10 +664,9 @@ int main(int, char **) {
 
         glActiveTexture(GL_TEXTURE10);
         glBindTexture(GL_TEXTURE_2D, sun_shadow.get_shadow_map());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        glActiveTexture(GL_TEXTURE11);
+        glBindTexture(GL_TEXTURE_2D, torch_shadow.get_shadow_map());
 
         auto pass_everything_lambda = [&](shader_t &shader) {
             shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
@@ -664,10 +684,12 @@ int main(int, char **) {
             shader.set_uniform("dl_vp", glm::value_ptr(sun_shadow.view));
 
             shader.set_uniform("pd_num", 1);
-            shader.set_uniform("pd_dir", forward - 0.2f * model_up);
-            shader.set_uniform("pd_pos", model_pos + model_up * 0.5f);
+            shader.set_uniform("pd_dir", torch_dir);
+            shader.set_uniform("pd_pos", torch_pos);
             shader.set_uniform("pd_light", glm::vec3(1.0f, 1.0f, 0.5f) * 0.5f);
             shader.set_uniform("pd_angle", 0.5f);
+            shader.set_uniform("pd_depth", 11);
+            shader.set_uniform("pd_vp", glm::value_ptr(torch_shadow.view));
 
             shader.set_uniform("background_light", glm::vec3(1, 1, 1) * 0.4f);
         };
