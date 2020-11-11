@@ -252,7 +252,7 @@ void mouse_moved(GLFWwindow *window, double xoffset, double yoffset) {
 
         rotation += xoffset * MOUSE_SENS;
         pitch += yoffset * MOUSE_SENS;
-        crop_interval(pitch, 0.1f, 0.5f);
+        crop_interval(pitch, -0.1f, 0.4f);
         if (rotation > 2)
             rotation -= 2;
         if (rotation < 0)
@@ -320,8 +320,7 @@ std::pair<Mesh, TorMovementModel> make_torus(
 
     GLuint height_map, normal_map;
     glGenTextures(1, &height_map);
-    // load_image(height_map, "assets/testheight.png");
-    load_image(height_map, "assets/testheight.png");
+    load_image(height_map, "assets/testheight2.png");
     glGenTextures(1, &normal_map);
     load_image(normal_map, "assets/normal_map.png");
 
@@ -441,7 +440,7 @@ int main(int, char **) {
 
     auto const start_time = std::chrono::steady_clock::now();
 
-    float r = 0.7, R = 5, height_mult = 0.8, badrock_height = 0.4;
+    float r = 0.7, R = 5, height_mult = 0.8, badrock_height = 0.3;
     auto tmp = make_torus(300, std::max(5, int(300 * r / R)), r, R, height_mult, badrock_height);
     Mesh tor = tmp.first;
     TorMovementModel mmodel = tmp.second;
@@ -467,6 +466,7 @@ int main(int, char **) {
     static float fovy = 90;
     static float sun_speed_log = -20;
     static float sun_start_a = 3.4;
+    static float camera_radius_mult = 1;
 
     while (!glfwWindowShouldClose(window)) {
 
@@ -495,6 +495,7 @@ int main(int, char **) {
         glm::vec3 camera_offset_desired = 
             0.1f * camera_up_desired + 0.2f * forward +
             0.4f * glm::mat3(glm::rotate((-pitch + 0.5f) * float(M_PI), glm::normalize(glm::cross(forward, camera_up_desired)))) * camera_up_desired;
+        camera_offset_desired *= camera_radius_mult;
         glm::vec3 camera_center_desired = model_pos + 0.3f * forward;
 
         if (camera_position_new) {
@@ -557,7 +558,7 @@ int main(int, char **) {
 
         // get torch shadow
         torch_shadow.set_shadow(
-            glm::perspective<float>(glm::radians(90.0), 1, 0.01, 10) *
+            glm::perspective<float>(glm::radians(130.0), 1, 0.01, 10) *
             glm::lookAt(torch_pos, torch_pos + torch_dir, model_up));
 
         id_shader.use();
@@ -601,6 +602,7 @@ int main(int, char **) {
         ImGui::SliderFloat("fovy", &fovy, 10, 180);
         ImGui::SliderFloat("sun start a", &sun_start_a, 0, 2 * M_PI);
         ImGui::SliderFloat("sun speed log", &sun_speed_log, -20, 0);
+        ImGui::SliderFloat("camera radius", &camera_radius_mult, 0.5, 5);
 
         static bool texture_gamma_correction = true;
         ImGui::Checkbox("texture gamma correction", &texture_gamma_correction);
@@ -675,7 +677,7 @@ int main(int, char **) {
             shader.set_uniform("pd_dir", torch_dir);
             shader.set_uniform("pd_pos", torch_pos);
             shader.set_uniform("pd_light", glm::vec3(1.0f, 1.0f, 0.5f) * 0.5f);
-            shader.set_uniform("pd_angle", 0.5f);
+            shader.set_uniform("pd_angle", 0.6f);
             shader.set_uniform("pd_depth", 11);
             shader.set_uniform("pd_vp", glm::value_ptr(torch_shadow.view));
 
