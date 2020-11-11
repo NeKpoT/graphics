@@ -69,7 +69,7 @@ void setup_imgui(GLFWwindow *window) {
 
 void load_image(GLuint &texture, const char* filename) {
     int width = 0, height = 0, channels = 0;
-    stbi_set_flip_vertically_on_load(false);
+    stbi_set_flip_vertically_on_load(true);
     unsigned char *image = stbi_load(
         filename,
         //  "assets/test.png",

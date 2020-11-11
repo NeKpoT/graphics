@@ -196,19 +196,6 @@ void load_cubemap(GLuint &texture) {
     }
 }
 
-bool load_object(tinyobj::attrib_t &attrib, std::vector<tinyobj::shape_t> &shapes, std::vector<tinyobj::material_t> &materials) {
-    std::string warn, err;
-    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, "reflex_camera.obj");
-
-    if (!warn.empty()) {
-        std::cout << warn << std::endl;
-    }
-    if (!err.empty()) {
-        std::cerr << err << std::endl;
-    }
-
-    return ret;
-}
 
 std::vector<Mesh> load_object(std::string path, std::string filename) {
     tinyobj::attrib_t attrib;
@@ -430,7 +417,7 @@ std::pair<Mesh, TorMovementModel> make_torus(
 int main(int, char **) {
     GLFWwindow *window = init_window();
 
-    std::vector<Mesh> car_meshes = load_object("assets/rov/", "MSL_clean.obj");
+    std::vector<Mesh> car_meshes = load_object("assets/reflex_camera/", "reflex_camera.obj");
 
     GLuint cubemap_texture;
     load_cubemap(cubemap_texture);
@@ -478,8 +465,8 @@ int main(int, char **) {
 
     // controls
     static float fovy = 90;
-    static float sun_speed_log = -5;
-    static float sun_start_a = 0;
+    static float sun_speed_log = -20;
+    static float sun_start_a = 3.4;
 
     while (!glfwWindowShouldClose(window)) {
 
@@ -674,7 +661,6 @@ int main(int, char **) {
             shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
 
             shader.set_uniform("u_cube", int(0));
-            shader.set_uniform<float>("u_tile", tile_x, tile_y);
 
             shader.set_uniform("u_tex_gamma_correct", texture_gamma_correction);
             shader.set_uniform("u_blend_gamma_correct", blend_gamma_correction);
@@ -696,6 +682,7 @@ int main(int, char **) {
             shader.set_uniform("background_light", glm::vec3(1, 1, 1) * 0.4f);
         };
 
+        moon_shader.set_uniform<float>("u_tile", tile_x, tile_y);
         moon_shader.set_uniform("u_m", glm::value_ptr(model));
         moon_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
         moon_shader.set_uniform("u_badrock_height", badrock_height);
@@ -718,6 +705,7 @@ int main(int, char **) {
 
         object_shader.set_uniform("u_m", glm::value_ptr(car_model));
         object_shader.set_uniform("u_mvp", glm::value_ptr(car_mvp));
+        object_shader.set_uniform<float>("u_tile", 1, 1);
         pass_everything_lambda(object_shader);
         // object_shader.set_uniform("background_light", 0.7f, 0.7f, 0.7f);
 

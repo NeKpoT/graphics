@@ -9,7 +9,6 @@ struct vx_output_t
     vec3 normal;
     vec3 position;
     vec2 texcoord;
-    float h;
 };
 
 in vx_output_t v_out;
@@ -46,9 +45,9 @@ const float NO_DETAIL_DIST = 4;
 
 vec4 get_texture(sampler2D tex, vec2 pos) {
     vec4 tex_v = texture(tex, pos);
-    if (tex_v == vec4(0, 0, 0, 0)) {
-        tex_v = vec4(u_color0, 0);
-    }
+    // if (tex_v == vec4(0, 0, 0, 0)) {
+    //     tex_v = vec4(u_color0, 0);
+    // }
     return tex_v;
 }
 
@@ -75,7 +74,7 @@ vec3 color(sampler2D u_tex, float u_texture_a, float u_prism_n)
     r_ref = r_ref * r_ref;
     float r_prism = 1 - r_ref;
     
-    vec3 tex = get_texture(u_tex, v_out.texcoord).rgb;
+    vec3 tex = get_texture(u_tex0, v_out.texcoord).rgb;
     // tex = ungamma(tex);
     tex = get_light(v_out.position, u_cam, v_out.normal, tex, 0.8);
 
