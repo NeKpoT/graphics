@@ -1,0 +1,38 @@
+#version 330 core
+
+layout (points) in;
+layout (triangles, max_vertices = 6) out;
+
+out vec3 position;
+out vec2 texcoord;
+
+uniform vec3 camera_position;
+uniform vec3 camera_forward;
+
+void main()
+{
+    vec3 camera_up = vec3(0, 0, 1);
+    vec3 camera_fw_plane = camera_forward - camera_up * dot(camera_forward, camera_up);
+    vec3 camera_left = cross(camera_forward, camera_up);
+
+    const float width = 0.1;
+    const float height = 2;
+
+    vec3 up = camera_up * height;
+    vec3 left = camera_left * (width / 2);
+
+    int left_mult[6] = { +1, -1, -1, -1, +1, +1};
+    int up_mult[6] =   { -1, -1, +1, +1, +1, -1};
+
+    for (int tr = 0; tr < 2; tr++) {
+        for (int v = 0; v < 3; v++) {
+            int i = tr * 3 + v;
+            // position = gl_Position = gl_in[0].gl_Position + left * left_mult[i] + up * (up_mult[i] + 1) / 2;
+            position = gl_in[0].gl_Position + vec3(-1, 0, 0) * left_mult[i] + vec3(0, 1, 0) * (up_mult[i] + 1) / 2;
+            gl_Position = vec4(position, 1.0);
+            texcoord = (vec2(left_mult, up_mult) + 1) / 2;
+            EmitVertex();
+        }
+        EndPrimitive();
+    }
+}

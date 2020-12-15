@@ -24,6 +24,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/transform.hpp>
 
+#include "droplet.h"
 #include "glconfig.h"
 #include "opengl_shader.h"
 
@@ -47,18 +48,17 @@ void wait_fps_cap() {
     static int last_frame_pos = -2;
     static int current_frame_pos = -1;
 
-
     if (last_frame_pos == -1) {
         last_frame_pos = 0;
         current_frame_pos = 1;
-    } else {;
+    } else {
+        ;
         steady_clock::duration frame_duration = std::chrono::steady_clock::now() - last_frames_times[last_frame_pos];
         steady_clock::duration frame_min_duration = nanoseconds((int)FRAME_DURATION_NSECONDS);
 
         if (frame_duration < frame_min_duration) {
             std::this_thread::sleep_for(frame_min_duration - frame_duration);
         }
-
     }
 
     auto time_now = std::chrono::steady_clock::now();
@@ -291,9 +291,9 @@ int main(int, char **) {
 
     // init shaders
     shader_t skybox_shader("assets/skybox.vs", "assets/skybox.fs");
-    shader_t moon_shader("assets/moon.vs", "assets/moon.fs");
-    shader_t object_shader("assets/object.vs", "assets/object.fs");
-    shader_t id_shader("assets/id.vs", "assets/id.fs");
+    shader_t droplet_shader("assets/droplets.vs", "assets/droplets.fs", "assets/droplets.gs");
+    // shader_t object_shader("assets/object.vs", "assets/object.fs");
+    // shader_t id_shader("assets/id.vs", "assets/id.fs");
 
     std::cerr << "shaders done\n";
 
@@ -315,6 +315,10 @@ int main(int, char **) {
     static float sun_start_a = 3.4;
     static float camera_radius_mult = 1;
 
+    float rain_tile_size = 3;
+    float rain_height = 10;
+    Droplets droplets(100, rain_tile_size, rain_height);
+
     while (!glfwWindowShouldClose(window)) {
 
         glfwPollEvents();
@@ -335,8 +339,10 @@ int main(int, char **) {
 
         glm::vec3 camera_center = player_pos + player_look;
         glm::vec3 camera_up = glm::vec3(0.0f, 0.0f, 1.0f);
+        glm::vec3 camera_forward = player_look;
 
-        glm::mat4 player_model = glm::translate(player_pos) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f) * 0.09f);
+        glm::mat4 player_model
+            = glm::translate(player_pos) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f) * 0.09f);
         player_model[3][3] = 1;
 
         glm::vec3 camera_position = player_pos;
@@ -354,7 +360,7 @@ int main(int, char **) {
 
         // get sun shadow
         // sun_shadow.set_shadow(
-            // glm::ortho(-max_radius, max_radius, -max_radius, max_radius, -max_radius, max_radius) * glm::lookAt(sun_position, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)));
+        // glm::ortho(-max_radius, max_radius, -max_radius, max_radius, -max_radius, max_radius) * glm::lookAt(sun_position, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)));
 
         // id_shader.use();
         // {
@@ -426,6 +432,11 @@ int main(int, char **) {
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindVertexArray(0);
 
+        droplet_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
+        droplet_shader.set_uniform("tile_size", rain_tile_size);
+        droplet_shader.set_uniform("camera_position", camera_position);
+        droplet_shader.set_uniform("camera_forward", camera_forward);
+        droplets.draw(droplet_shader, time_from_start);
 
         // Generate gui render commands
         ImGui::Render();
