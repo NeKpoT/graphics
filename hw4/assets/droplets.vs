@@ -2,13 +2,13 @@
 
 layout (location = 0) in vec3 in_position;
 
-uniform mat4 u_mvp;
 uniform vec3 camera_position;
 uniform float tile_size;
+uniform mat4 u_mvp;
 
 void main()
 {
-    vec4 tmp = u_mvp * vec4(in_position, 1.0);
-    // tmp.xy += tile_size * floor(camera_position.xy / tile_size);
-    gl_Position = tmp;
+    vec3 pos = in_position;
+    pos.xy += tile_size * floor(camera_position.xy / tile_size);
+    gl_Position = vec4(pos, 1.0);
 }

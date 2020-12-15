@@ -9,7 +9,7 @@ Droplets::Droplets(size_t n, float tile_size, float height, float speed)
     , tile_size(tile_size)
     , height(height)
     , speed(speed)
-    , random_xy_position(0, tile_size) {
+    , random_xy_position(-tile_size / 2, tile_size / 2) {
 
     // init positions
     std::uniform_real_distribution<> random_height(0, height);
@@ -48,9 +48,7 @@ void Droplets::draw(shader_t &shader, float time) {
     // }
     // last_time = time;
 
-    shader.use();
-
     glBindVertexArray(vao);
-    glDrawElements(GL_POINTS, n, GL_UNSIGNED_INT, 0);
+    glDrawArrays(GL_POINTS, 0, n);
     glBindVertexArray(0);
 }

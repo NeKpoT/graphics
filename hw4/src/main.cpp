@@ -316,7 +316,7 @@ int main(int, char **) {
     static float camera_radius_mult = 1;
 
     float rain_tile_size = 3;
-    float rain_height = 10;
+    float rain_height = 2;
     Droplets droplets(100, rain_tile_size, rain_height);
 
     while (!glfwWindowShouldClose(window)) {
@@ -334,24 +334,26 @@ int main(int, char **) {
 
         glm::vec3 sun_position = glm::vec3(sun_rotation * glm::normalize(glm::vec4(1.0f, 1.0f, 1.0f, 0)));
 
-        glm::vec3 player_pos = glm::vec3(0.0, 0.0, 0.0);
-        glm::vec3 player_look = glm::vec3(0.0, 1.0, 0.0);
+        glm::vec3 player_pos = glm::vec3(0.0, 0.0, 1.0);
+        glm::vec3 player_look_dir = glm::rotate(time_from_start / 5, glm::vec3(0,0,1)) * glm::vec4(0.0, 1.0, 0.0, 0.0);
 
-        glm::vec3 camera_center = player_pos + player_look;
+        glm::vec3 camera_position = player_pos;
+        glm::vec3 camera_forward = player_look_dir;
         glm::vec3 camera_up = glm::vec3(0.0f, 0.0f, 1.0f);
-        glm::vec3 camera_forward = player_look;
+
+        glm::vec3 camera_lookat = camera_position + camera_forward;
 
         glm::mat4 player_model
             = glm::translate(player_pos) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f) * 0.09f);
         player_model[3][3] = 1;
 
-        glm::vec3 camera_position = player_pos;
         auto model = glm::mat4(1);
         auto view = glm::lookAt<float>(
             camera_position,
-            camera_center,
+            camera_lookat,
             camera_up);
         auto projection = glm::perspective<float>(glm::radians(fovy), float(display_w) / display_h, 0.1, 100);
+        // std::cerr << fovy << std::endl;
         auto mvp = projection * view * model;
         auto vp = projection * view;
         auto mvp_no_translation = projection * glm::mat4(glm::mat3(view * model));
@@ -396,8 +398,7 @@ int main(int, char **) {
         // GUI
         ImGui::Begin("GUI");
         ImGui::Text("FPS: %d", fps);
-        static float fovy = 90;
-        ImGui::SliderFloat("fovy", &fovy, 10, 180);
+        ImGui::SliderFloat("fovy", &fovy, 1, 180);
         ImGui::SliderFloat("sun start a", &sun_start_a, 0, 2 * M_PI);
         ImGui::SliderFloat("sun speed log", &sun_speed_log, -20, 0);
         ImGui::SliderFloat("camera radius", &camera_radius_mult, 0.5, 5);
@@ -432,6 +433,7 @@ int main(int, char **) {
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindVertexArray(0);
 
+        droplet_shader.use();
         droplet_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
         droplet_shader.set_uniform("tile_size", rain_tile_size);
         droplet_shader.set_uniform("camera_position", camera_position);
