@@ -67,9 +67,9 @@ void setup_imgui(GLFWwindow *window) {
     ImGui::StyleColorsDark();
 }
 
-void load_image(GLuint &texture, const char* filename) {
+void load_image(GLuint &texture, const char* filename, bool flip_vertically) {
     int width = 0, height = 0, channels = 0;
-    stbi_set_flip_vertically_on_load(true);
+    stbi_set_flip_vertically_on_load(flip_vertically);
     unsigned char *image = stbi_load(
         filename,
         //  "assets/test.png",

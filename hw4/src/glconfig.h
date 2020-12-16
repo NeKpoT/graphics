@@ -32,7 +32,7 @@ GLFWwindow* init_window();
 
 void setup_imgui(GLFWwindow* window);
 
-void load_image(GLuint& texture, const char* filename);
+void load_image(GLuint& texture, const char* filename, bool flip_vertically = true);
 
 template <typename T>
 void crop_interval(T& x, T minv, T maxv) {

@@ -285,6 +285,9 @@ int main(int, char **) {
     GLuint cubemap_texture;
     load_cubemap(cubemap_texture);
 
+    GLuint droplet_tex;
+    load_image(droplet_tex, "assets/droplet.png");
+
     // create our geometries
     GLuint vbo, vao, ebo;
     create_skybox(vbo, vao, ebo);
@@ -302,6 +305,9 @@ int main(int, char **) {
     glfwSetScrollCallback(window, &scroll_callback);
     glfwSetCursorPosCallback(window, &mouse_callback);
 
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     auto const start_time = std::chrono::steady_clock::now();
 
     float r = 0.7, R = 5, height_mult = 0.8, badrock_height = 0.3;
@@ -314,6 +320,7 @@ int main(int, char **) {
     static float sun_speed_log = -20;
     static float sun_start_a = 3.4;
     static float camera_radius_mult = 1;
+    static float droplet_speed = 7.0;
 
     float rain_tile_size = 3;
     float rain_height = 5;
@@ -403,6 +410,9 @@ int main(int, char **) {
         ImGui::SliderFloat("sun speed log", &sun_speed_log, -20, 0);
         ImGui::SliderFloat("camera radius", &camera_radius_mult, 0.5, 5);
 
+        ImGui::SliderFloat("droplet speed", &droplet_speed, 0.1, 30);
+        droplets.speed = droplet_speed;
+
         static bool texture_gamma_correction = true;
         ImGui::Checkbox("texture gamma correction", &texture_gamma_correction);
 
@@ -433,11 +443,20 @@ int main(int, char **) {
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindVertexArray(0);
 
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, droplet_tex);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
         droplet_shader.use();
         droplet_shader.set_uniform("u_mvp", glm::value_ptr(mvp));
         droplet_shader.set_uniform("tile_size", rain_tile_size);
         droplet_shader.set_uniform("camera_position", camera_position);
         droplet_shader.set_uniform("camera_forward", camera_forward);
+        droplet_shader.set_uniform("u_droplet_tex", 1);
         droplets.draw(droplet_shader, time_from_start);
 
         // Generate gui render commands

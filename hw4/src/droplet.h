@@ -11,10 +11,10 @@ class Droplets {
 
     const size_t n;
     const float tile_size;
-    const float height;
-    const float speed;
-    const float drop_width;
-    const float drop_height;
+    float height;
+    float speed;
+    float drop_width;
+    float drop_height;
 
   private:
     void generate_flatcoord(size_t id);
