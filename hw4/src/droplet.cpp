@@ -62,10 +62,13 @@ void Droplets::draw(shader_t &shader, float time) {
 
 void Droplets::generate_flatcoord(size_t id) {
     float x, z;
-    do {
-        x = random_flat_position(rng);
-        z = random_flat_position(rng);
-    } while (x * x + z*z > tile_size);
+    // do {
+    //     x = random_flat_position(rng);
+    //     z = random_flat_position(rng);
+    // } while (x * x + z*z > tile_size); // wrong coz camera moves
+
+    x = random_flat_position(rng);
+    z = random_flat_position(rng);
     positions[3 * id + 0] = x;
     positions[3 * id + 2] = z;
 }

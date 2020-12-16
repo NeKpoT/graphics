@@ -9,6 +9,6 @@ uniform mat4 u_mvp;
 void main()
 {
     vec3 pos = in_position;
-    pos.xy += tile_size * floor(camera_position.xy / tile_size);
+    pos.xz += tile_size * round((camera_position.xz - pos.xz) / tile_size);
     gl_Position = vec4(pos, 1.0);
 }
