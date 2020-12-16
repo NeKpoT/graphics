@@ -5,7 +5,7 @@
 
 class Droplets {
   public:
-    Droplets(size_t n, float tile_size, float height, float speed = 10.0);
+    Droplets(size_t n, float tile_size, float height, float speed = 7.0, float drop_width = 0.005, float drop_height = 0.3);
 
     void draw(shader_t &shader, float time);
 
@@ -13,14 +13,18 @@ class Droplets {
     const float tile_size;
     const float height;
     const float speed;
+    const float drop_width;
+    const float drop_height;
 
   private:
+    void generate_flatcoord(size_t id);
+
     std::vector<float> positions;
     std::vector<float> starting_heights;
     float last_time = 0;
 
     GLuint vao, vbo;
 
-    std::uniform_real_distribution<float> random_xy_position;
     static std::mt19937 rng;
+    std::uniform_real_distribution<float> random_flat_position;
 };

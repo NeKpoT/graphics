@@ -90,7 +90,10 @@ vec3 get_light(vec3 obj_position, vec3 camera_position, vec3 normal, vec3 textur
 
 vec4 texture_cubemap(samplerCube cube, vec3 dir) {
     dir = normalize(dir);
-    vec4 res = texture(cube, dir);
+    vec4 cubemap = texture(cube, dir);
+    vec4 grey = vec4(0.3, 0.3, 0.3, 1);
+    float grey_coeff = min(0.95, 1 + normalize(dir).y);
+    vec4 res = mix(cubemap, grey, grey_coeff);
 
     const float FULL_COLOR = 0.995;
     const float NO_COLOR = 0.993;

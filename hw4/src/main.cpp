@@ -163,12 +163,12 @@ std::vector<Mesh> create_object(const tinyobj::attrib_t &attrib, const std::vect
 
 void load_cubemap(GLuint &texture) {
     std::string filenames[] = {
-        // "assets/Bridge/posx.jpg",
-        // "assets/Bridge/negx.jpg",
-        // "assets/Bridge/posy.jpg",
-        // "assets/Bridge/negy.jpg",
-        // "assets/Bridge/posz.jpg",
-        // "assets/Bridge/negz.jpg"
+        "assets/Bridge/posx.jpg",
+        "assets/Bridge/negx.jpg",
+        "assets/Bridge/posy.jpg",
+        "assets/Bridge/negy.jpg",
+        "assets/Bridge/posz.jpg",
+        "assets/Bridge/negz.jpg"
 
         // "assets/SaintLazarusChurch/posx.jpg",
         // "assets/SaintLazarusChurch/negx.jpg",
@@ -177,12 +177,12 @@ void load_cubemap(GLuint &texture) {
         // "assets/SaintLazarusChurch/posz.jpg",
         // "assets/SaintLazarusChurch/negz.jpg"
 
-        "assets/sky/px.png",
-        "assets/sky/nx.png",
-        "assets/sky/py.png",
-        "assets/sky/ny.png",
-        "assets/sky/pz.png",
-        "assets/sky/nz.png"
+        // "assets/sky/px.png",
+        // "assets/sky/nx.png",
+        // "assets/sky/py.png",
+        // "assets/sky/ny.png",
+        // "assets/sky/pz.png",
+        // "assets/sky/nz.png"
 
         // "assets/testcube/positive-x.tga",
         // "assets/testcube/negative-x.tga",
@@ -316,8 +316,8 @@ int main(int, char **) {
     static float camera_radius_mult = 1;
 
     float rain_tile_size = 3;
-    float rain_height = 2;
-    Droplets droplets(100, rain_tile_size, rain_height);
+    float rain_height = 5;
+    Droplets droplets(700, rain_tile_size, rain_height);
 
     while (!glfwWindowShouldClose(window)) {
 
@@ -334,12 +334,12 @@ int main(int, char **) {
 
         glm::vec3 sun_position = glm::vec3(sun_rotation * glm::normalize(glm::vec4(1.0f, 1.0f, 1.0f, 0)));
 
-        glm::vec3 player_pos = glm::vec3(0.0, 0.0, 1.0);
-        glm::vec3 player_look_dir = glm::rotate(time_from_start / 5, glm::vec3(0,0,1)) * glm::vec4(0.0, 1.0, 0.0, 0.0);
+        glm::vec3 player_pos = glm::vec3(0.0, 1.0, 0.0);
+        glm::vec3 player_look_dir = glm::rotate(time_from_start / 5, glm::vec3(0,1,0)) * glm::vec4(0.0, 0.0, 1.0, 0.0);
 
         glm::vec3 camera_position = player_pos;
         glm::vec3 camera_forward = player_look_dir;
-        glm::vec3 camera_up = glm::vec3(0.0f, 0.0f, 1.0f);
+        glm::vec3 camera_up = glm::vec3(0.0f, 1.0f, 0.0f);
 
         glm::vec3 camera_lookat = camera_position + camera_forward;
 
