@@ -51,7 +51,7 @@ vec4 get_texture(sampler2D tex, vec2 pos) {
     return tex_v;
 }
 
-vec3 color(sampler2D u_tex, float u_texture_a)
+vec4 color(sampler2D u_tex, float u_texture_a)
 {
     float optics_a = 1 - u_texture_a;
     
@@ -83,12 +83,16 @@ vec3 color(sampler2D u_tex, float u_texture_a)
     }
     
 
-    return color_out;
+    return vec4(color_out, get_texture(u_tex0, v_out.texcoord).a);
     // return tex; // show norm
     // o_frag_color = texture_cubemap(u_cube, -norm); // see-through
     // o_frag_color = vec4(r_prism * vec3(1, 1, 1), 1); // show prism
 }
 
 void main() {
-    o_frag_color = vec4(color(u_tex0, u_texture_a0), 1);
+    vec4 tmp = color(u_tex0, u_texture_a0);
+    // if (tmp.a < 0.05) {
+    //     discard;
+    // }
+    o_frag_color = tmp;
 }

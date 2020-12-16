@@ -26,7 +26,7 @@ float get_shadow_dl(vec3 obj_pos, int dl_i) {
     float shadow_depth = texture(dl_depth[dl_i], scoord.xy).x;
 
     // return scoord.z - shadow_depth + 1e-3;
-    if (scoord.z - 1e-3 >= shadow_depth)
+    if (scoord.z - 1e-5 >= shadow_depth)
         return 0;
     else
         return 1;

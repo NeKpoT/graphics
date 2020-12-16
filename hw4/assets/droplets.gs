@@ -13,6 +13,21 @@ uniform mat4 u_mvp;
 uniform float width = 0.005;
 uniform float height = 0.2;
 
+uniform mat4 u_height_view;
+uniform sampler2D u_height_tex;
+
+float get_shadow(vec3 obj_pos) {
+    vec4 scoord = u_height_view * vec4(obj_pos, 1);
+    scoord /= scoord.w;
+    scoord = scoord / 2 + 0.5;
+    float shadow_depth = texture(u_height_tex, scoord.xy).x;
+
+    if (scoord.z - 1e-3 >= shadow_depth)
+        return 0;
+    else
+        return 1;
+}
+
 void main()
 {
     //position = vec3(0.0, 0.0, 0.0);
@@ -29,6 +44,13 @@ void main()
     //EmitVertex();
     //EndPrimitive();
 
+    vec3 point_pos = gl_in[0].gl_Position.xyz;
+
+    if (get_shadow(point_pos) == 0) {
+        EndPrimitive();
+        return;
+    }
+
     vec3 camera_up = vec3(0, 1, 0);
     vec3 camera_fw_plane = camera_forward - camera_up * dot(camera_forward, camera_up);
     vec3 camera_left = cross(camera_forward, camera_up);
@@ -42,7 +64,6 @@ void main()
     for (int tr = 0; tr < 2; tr++) {
         for (int v = 0; v < 3; v++) {
             int i = tr * 3 + v;
-            vec3 point_pos = gl_in[0].gl_Position.xyz;
             position = point_pos + left * left_mult[i] + up * (up_mult[i] + 1) / 2;
             gl_Position = u_mvp * vec4(position, 1.0);
             texcoord = (vec2(1.0 * left_mult[i], 1.0 * up_mult[i]) + 1) / 2;
