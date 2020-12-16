@@ -51,7 +51,7 @@ vec4 get_texture(sampler2D tex, vec2 pos) {
     return tex_v;
 }
 
-vec3 color(sampler2D u_tex, float u_texture_a, float u_prism_n)
+vec3 color(sampler2D u_tex, float u_texture_a)
 {
     float optics_a = 1 - u_texture_a;
     
@@ -63,17 +63,6 @@ vec3 color(sampler2D u_tex, float u_texture_a, float u_prism_n)
     
     vec3 mirror = texture_cubemap(u_cube, 2 * pc_sized_norm - pc).rgb;
 
-    vec3 s = pc - pc_sized_norm;
-    float cosI = dot(pc, norm);
-    float sinT2 = u_prism_n * u_prism_n * (1.0 - cosI * cosI);
-    float cosT = sqrt(1 - sinT2);
-    // n * cosT + (v - n') * eta
-    vec3 prism = texture_cubemap(u_cube, -(norm * cosT - pc_sized_norm * u_prism_n + pc * u_prism_n)).rgb;
-
-    float r_ref = (cosI * u_prism_n - cosT) / (cosI * u_prism_n + cosT);
-    r_ref = r_ref * r_ref;
-    float r_prism = 1 - r_ref;
-    
     vec3 tex = get_texture(u_tex0, v_out.texcoord).rgb;
     // tex = ungamma(tex);
     tex = get_light(v_out.position, u_cam, v_out.normal, tex, 0.8);
@@ -86,21 +75,20 @@ vec3 color(sampler2D u_tex, float u_texture_a, float u_prism_n)
 
     if (u_blend_gamma_correct) {
         mirror = ungamma(mirror);
-        prism = ungamma(prism);
         tex = ungamma(tex);
     }
-    color_out = (mirror * r_ref + prism * r_prism) * (1 - u_texture_a) + tex * u_texture_a;
+    color_out = mirror * optics_a + tex * u_texture_a;
     if (u_blend_gamma_correct) {
         color_out = gamma(color_out);
     }
     
 
     return color_out;
+    // return tex; // show norm
     // o_frag_color = texture_cubemap(u_cube, -norm); // see-through
-    // o_frag_color = vec4((norm / 2 + 0.5).r, 0.0, 0.0, 1.0); // show norm
     // o_frag_color = vec4(r_prism * vec3(1, 1, 1), 1); // show prism
 }
 
 void main() {
-    o_frag_color = vec4(color(u_tex0, u_texture_a0, u_prism_n0), 1);
+    o_frag_color = vec4(color(u_tex0, u_texture_a0), 1);
 }

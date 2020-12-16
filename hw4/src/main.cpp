@@ -139,14 +139,31 @@ std::vector<Mesh> create_object(const tinyobj::attrib_t &attrib, const std::vect
                 exit(1);
             }
             face_count++;
+
+            glm::vec3 vert[3];
+            for (size_t vi = 0; vi < 3; vi++) {
+                size_t pos = 3 * shape.mesh.indices[index + vi].vertex_index;
+                vert[vi].x = attrib.vertices[pos + 0];
+                vert[vi].y = attrib.vertices[pos + 1];
+                vert[vi].z = attrib.vertices[pos + 2];
+            }
+            glm::vec3 def_normal = glm::normalize(glm::cross(vert[2] - vert[0], vert[1] - vert[0]));
+
             for (size_t vi = 0; vi < face_size; vi++, index++) {
                 indices.push_back(vertex_count++);
                 tinyobj::index_t idx = shape.mesh.indices[index];
 
                 auto start = attrib.vertices.begin() + 3 * shape.mesh.indices[index].vertex_index;
                 std::copy(start, start + 3, std::back_insert_iterator<std::vector<float>>(vertices));
-                auto start2 = attrib.normals.begin() + 3 * shape.mesh.indices[index].normal_index;
-                std::copy(start2, start2 + 3, std::back_insert_iterator<std::vector<float>>(vertices));
+                if (!attrib.normals.empty()) {
+                    auto start2 = attrib.normals.begin() + 3 * shape.mesh.indices[index].normal_index;
+                    std::copy(start2, start2 + 3, std::back_insert_iterator<std::vector<float>>(vertices));
+                } else {
+                    // use default normal
+                    vertices.push_back(def_normal.x);
+                    vertices.push_back(def_normal.y);
+                    vertices.push_back(def_normal.z);
+                }
 
                 tinyobj::real_t tx = attrib.texcoords[2 * idx.texcoord_index + 0];
                 tinyobj::real_t ty = attrib.texcoords[2 * idx.texcoord_index + 1];
@@ -245,29 +262,33 @@ std::vector<Mesh> load_object(std::string path, std::string filename) {
 const float SCROLL_STEP = 0.05;
 const float MOUSE_SENS = 0.005;
 
-void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
-    // radius -= yoffset * SCROLL_STEP;
-    // crop_interval(radius, 0.1f, 10.0f);
+float rotation = 0;
+float pitch = 0;
+glm::vec3 player_pos = glm::vec3(0, 1.0, 0);
+glm::vec2 player_flat_dir(1.0, 0.0);
+glm::vec3 player_look_dir(1, 0, 0);
 
-    // if (model_p != nullptr) {
-    //     model_p->move_forvard(yoffset > 0 ? 1 : -1);
-    // }
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
+    player_pos.x += yoffset * SCROLL_STEP * player_flat_dir.x;
+    player_pos.z += yoffset * SCROLL_STEP * player_flat_dir.y;
 }
 
 void mouse_moved(GLFWwindow *window, double xoffset, double yoffset) {
-    // if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)) {
-    //     if (model_p != nullptr) {
-    //         model_p->rotate(xoffset * MOUSE_SENS);
-    //     }
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)) {
 
-    //     rotation += xoffset * MOUSE_SENS;
-    //     pitch += yoffset * MOUSE_SENS;
-    //     crop_interval(pitch, -0.1f, 0.4f);
-    //     if (rotation > 2)
-    //         rotation -= 2;
-    //     if (rotation < 0)
-    //         rotation += 2;
-    // }
+        rotation -= xoffset * MOUSE_SENS;
+        pitch += yoffset * MOUSE_SENS;
+        crop_interval(pitch, -0.499f, 0.499f);
+        while (rotation > 2)
+            rotation -= 2;
+        while (rotation < 0)
+            rotation += 2;
+
+        player_flat_dir.x = cosf(rotation * M_PI);
+        player_flat_dir.y = sinf(rotation * M_PI);
+        player_look_dir = glm::vec3(player_flat_dir * cosf(pitch * M_PI), sinf(pitch * M_PI));
+        std::swap(player_look_dir.y, player_look_dir.z);
+    }
 }
 
 void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
@@ -280,7 +301,8 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
 int main(int, char **) {
     GLFWwindow *window = init_window();
 
-    // std::vector<Mesh> car_meshes = load_object("assets/reflex_camera/", "reflex_camera.obj");
+    std::vector<Mesh> tent_meshes = load_object("assets/tent/", "Market.obj");
+    glm::vec3 tent_position(5, 0, 5);
 
     GLuint cubemap_texture;
     load_cubemap(cubemap_texture);
@@ -295,8 +317,8 @@ int main(int, char **) {
     // init shaders
     shader_t skybox_shader("assets/skybox.vs", "assets/skybox.fs");
     shader_t droplet_shader("assets/droplets.vs", "assets/droplets.fs", "assets/droplets.gs");
-    // shader_t object_shader("assets/object.vs", "assets/object.fs");
-    // shader_t id_shader("assets/id.vs", "assets/id.fs");
+    shader_t object_shader("assets/object.vs", "assets/object.fs");
+    shader_t id_shader("assets/id.vs", "assets/id.fs");
 
     std::cerr << "shaders done\n";
 
@@ -313,7 +335,7 @@ int main(int, char **) {
     float r = 0.7, R = 5, height_mult = 0.8, badrock_height = 0.3;
 
     Shadow sun_shadow = Shadow(2048 * 4, 2048 * 4);
-    Shadow torch_shadow = Shadow(512, 512);
+    float max_radius = 20;
 
     // controls
     static float fovy = 90;
@@ -335,14 +357,12 @@ int main(int, char **) {
         glfwGetFramebufferSize(window, &display_w, &display_h);
         float const time_from_start = (float)(std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start_time).count() / 1000.0);
 
-        glm::mat4 sun_rotation = glm::rotate(
-            sun_start_a + time_from_start * 2 * float(M_PI) * powf(2, sun_speed_log),
-            glm::vec3(-1.0f, 1.0f, 1.0f));
+        // glm::mat4 sun_rotation = glm::rotate(
+        //     sun_start_a + time_from_start * 2 * float(M_PI) * powf(2, sun_speed_log),
+        //     glm::vec3(-1.0f, 1.0f, 1.0f));
 
-        glm::vec3 sun_position = glm::vec3(sun_rotation * glm::normalize(glm::vec4(1.0f, 1.0f, 1.0f, 0)));
-
-        glm::vec3 player_pos = glm::vec3(0.0, 1.0, 0.0);
-        glm::vec3 player_look_dir = glm::rotate(time_from_start / 5, glm::vec3(0,1,0)) * glm::vec4(0.0, 0.0, 1.0, 0.0);
+        // glm::vec3 sun_position = glm::vec3(sun_rotation * glm::normalize(glm::vec4(1.0f, 1.0f, 1.0f, 0)));
+        glm::vec3 sun_position = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
 
         glm::vec3 camera_position = player_pos;
         glm::vec3 camera_forward = player_look_dir;
@@ -350,9 +370,11 @@ int main(int, char **) {
 
         glm::vec3 camera_lookat = camera_position + camera_forward;
 
-        glm::mat4 player_model
-            = glm::translate(player_pos) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f) * 0.09f);
+        glm::mat4 player_model = glm::translate(player_pos) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f) * 1.00f);
         player_model[3][3] = 1;
+
+        glm::mat4 tent_model = glm::translate(tent_position) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f) * 1.0f);
+        tent_model[3][3] = 1;
 
         auto model = glm::mat4(1);
         auto view = glm::lookAt<float>(
@@ -365,28 +387,23 @@ int main(int, char **) {
         auto vp = projection * view;
         auto mvp_no_translation = projection * glm::mat4(glm::mat3(view * model));
 
-        auto car_mvp = projection * view * player_model;
+        auto tent_mvp = projection * view * tent_model;
 
         // get sun shadow
-        // sun_shadow.set_shadow(
-        // glm::ortho(-max_radius, max_radius, -max_radius, max_radius, -max_radius, max_radius) * glm::lookAt(sun_position, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)));
+        sun_shadow.set_shadow(
+            glm::ortho(-max_radius, max_radius, -max_radius, max_radius, -max_radius, max_radius) * glm::lookAt(sun_position, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)));
 
-        // id_shader.use();
-        // {
-        //     glm::mat4 shadow_mvp;
-        //     shadow_mvp = sun_shadow.view * model;
-        //     id_shader.set_uniform("u_mvp", glm::value_ptr(shadow_mvp));
-        //     for (Mesh &mesh : meshes) {
-        //         mesh.draw();
-        //     }
-        //     shadow_mvp = sun_shadow.view * car_model;
-        //     id_shader.set_uniform("u_mvp", glm::value_ptr(shadow_mvp));
-        //     for (Mesh &mesh : car_meshes) {
-        //         mesh.draw();
-        //     }
-        // }
+        id_shader.use();
+        {
+            glm::mat4 shadow_mvp;
+            shadow_mvp = sun_shadow.view * model;
+            id_shader.set_uniform("u_mvp", glm::value_ptr(shadow_mvp));
+            for (Mesh &mesh : tent_meshes) {
+                mesh.draw();
+            }
+        }
 
-        // sun_shadow.unset_shadow();
+        sun_shadow.unset_shadow();
 
         // start actual drawing
 
@@ -442,6 +459,53 @@ int main(int, char **) {
         glDrawElements(GL_TRIANGLES, 6 * 6, GL_UNSIGNED_INT, 0);
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindVertexArray(0);
+
+        // draw tent
+        auto pass_everything_lambda = [&](shader_t &shader) {
+            shader.set_uniform("u_cam", camera_position.x, camera_position.y, camera_position.z);
+
+            shader.set_uniform("u_cube", int(0));
+
+            shader.set_uniform("u_tex_gamma_correct", texture_gamma_correction);
+            shader.set_uniform("u_blend_gamma_correct", blend_gamma_correction);
+
+            shader.set_uniform("dl_num", 1);
+            shader.set_uniform("dl_dir", sun_position);
+            shader.set_uniform("dl_light", glm::vec3(1.0f, 1.0f, 1.0f));
+            shader.set_uniform("dl_depth", 10);
+            shader.set_uniform("dl_vp", glm::value_ptr(sun_shadow.view));
+
+            shader.set_uniform("pd_num", 0);
+            // shader.set_uniform("pd_dir", torch_dir);
+            // shader.set_uniform("pd_pos", torch_pos);
+            // shader.set_uniform("pd_light", glm::vec3(1.0f, 1.0f, 0.5f) * 0.5f);
+            // shader.set_uniform("pd_angle", 0.6f);
+            // shader.set_uniform("pd_depth", 11);
+            // shader.set_uniform("pd_vp", glm::value_ptr(torch_shadow.view));
+
+            shader.set_uniform("background_light", glm::vec3(1, 1, 1) * 0.8f);
+        };
+
+        object_shader.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap_texture);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+        object_shader.set_uniform("u_m", glm::value_ptr(tent_model));
+        object_shader.set_uniform("u_mvp", glm::value_ptr(tent_mvp));
+        object_shader.set_uniform<float>("u_tile", 1, 1);
+        pass_everything_lambda(object_shader);
+        // object_shader.set_uniform("background_light", 0.7f, 0.7f, 0.7f);
+
+        for (Mesh &mesh : tent_meshes) {
+            mesh.draw(object_shader);
+        }
+
+        // draw droplets
 
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, droplet_tex);
