@@ -66,7 +66,7 @@ void main()
             int i = tr * 3 + v;
             position = point_pos + left * left_mult[i] + up * (up_mult[i] + 1) / 2;
             gl_Position = u_mvp * vec4(position, 1.0);
-            texcoord = (vec2(1.0 * left_mult[i], 1.0 * up_mult[i]) + 1) / 2;
+            texcoord = (vec2(1 - left_mult[i], 1 + up_mult[i])) / 2;
             EmitVertex();
         }
         EndPrimitive();

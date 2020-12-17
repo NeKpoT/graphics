@@ -368,7 +368,7 @@ int main(int, char **) {
             sun_start_a + time_from_start * 2 * float(M_PI) * powf(2, sun_speed_log),
             glm::vec3(-1.0f, 1.0f, 1.0f));
 
-        glm::vec3 sun_position = glm::vec3(sun_rotation * glm::normalize(glm::vec4(1.0f, 1.0f, 1.0f, 0)));
+        glm::vec3 sun_position = glm::vec3(sun_rotation * glm::normalize(-glm::vec4(1.0f, 1.0f, 1.0f, 0)));
         // glm::vec3 sun_position = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
 
         glm::vec3 camera_position = player_pos;
