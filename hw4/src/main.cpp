@@ -382,7 +382,7 @@ int main(int, char **) {
 
     float rain_tile_size = 7;
     float rain_height = 5;
-    Droplets droplets(700, rain_tile_size, rain_height);
+    Droplets droplets(700 * 4, rain_tile_size, rain_height);
 
     while (!glfwWindowShouldClose(window)) {
 
