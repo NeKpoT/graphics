@@ -264,7 +264,7 @@ const float MOUSE_SENS = 0.005;
 
 float rotation = 0;
 float pitch = 0;
-glm::vec3 player_pos = glm::vec3(0, 1.0, 0);
+glm::vec3 player_pos = glm::vec3(0, 0.7, 0);
 glm::vec2 player_flat_dir(1.0, 0.0);
 glm::vec3 player_look_dir(1, 0, 0);
 
@@ -301,12 +301,41 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
     cursor_position[1] = ypos;
 }
 
+Mesh ground() {
+    float dist = 30;
+    std::vector<float> v;
+    for (int dx = -1; dx <= 1; dx += 2) {
+        for (int dy = -1; dy <= 1; dy += 2) {
+            v.push_back(dx * dist);
+            v.push_back(0);
+            v.push_back(dy * dist);
+
+            v.push_back(0);
+            v.push_back(1);
+            v.push_back(0);
+
+            v.push_back((dx + 1) * dist * 5);
+            v.push_back((dy + 1) * dist * 5);
+        }
+    }
+
+    std::vector<unsigned int> indices { 0, 1, 2, 2, 3, 1 };
+    std::reverse(indices.begin(), indices.end());
+    std::vector<Material> mats = { Material("assets/bonsai/soil.jpg") };
+
+    return Mesh(v, indices, mats, std::vector<size_t> { 3, 3, 2 });
+}
+
 int main(int, char **) {
     GLFWwindow *window = init_window();
 
     // std::vector<Mesh> tent_meshes = load_object("assets/tent/", "Market.obj");
     std::vector<Mesh> tent_meshes = load_object("assets/black_smith/", "black_smith.obj");
-    glm::vec3 tent_position(0, 1.8, 0);
+    glm::vec3 tent_position(0, 1.3, 0);
+
+    // std::vector<Mesh> all_ground_meshes22 = load_object("assets/bonsai/", "bonsai-tree.obj");
+    std::vector<Mesh> all_ground_meshes = { ground() };
+    std::vector<Mesh *> ground_meshes = { &all_ground_meshes[0] };
 
     GLuint cubemap_texture;
     load_cubemap(cubemap_texture);
@@ -380,7 +409,10 @@ int main(int, char **) {
         glm::mat4 tent_model = glm::translate(tent_position) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f) * 1.5f);
         tent_model[3][3] = 1;
 
-        auto model = glm::mat4(1);
+        glm::mat4 ground_model = glm::translate(glm::vec3(0, 0, 0)) * glm::scale(glm::vec3(1.0f, 1.0f, 1.0f) * 10.0f);
+
+        auto model
+            = glm::mat4(1);
         auto view = glm::lookAt<float>(
             camera_position,
             camera_lookat,
@@ -392,6 +424,7 @@ int main(int, char **) {
         auto mvp_no_translation = projection * glm::mat4(glm::mat3(view * model));
 
         auto tent_mvp = projection * view * tent_model;
+        auto ground_mvp = projection * view * ground_model;
 
         // get sun shadow
         sun_shadow.set_shadow(
@@ -403,6 +436,11 @@ int main(int, char **) {
             id_shader.set_uniform("u_mvp", glm::value_ptr(shadow_mvp));
             for (Mesh &mesh : tent_meshes) {
                 mesh.draw();
+            }
+            shadow_mvp = sun_shadow.view * ground_model;
+            id_shader.set_uniform("u_mvp", glm::value_ptr(shadow_mvp));
+            for (Mesh *mesh : ground_meshes) {
+                mesh->draw();
             }
         }
         sun_shadow.unset_shadow();
@@ -416,6 +454,11 @@ int main(int, char **) {
             id_shader.set_uniform("u_mvp", glm::value_ptr(shadow_mvp));
             for (Mesh &mesh : tent_meshes) {
                 mesh.draw();
+            }
+            shadow_mvp = height_map.view * ground_model;
+            id_shader.set_uniform("u_mvp", glm::value_ptr(shadow_mvp));
+            for (Mesh *mesh : ground_meshes) {
+                mesh->draw();
             }
         }
         height_map.unset_shadow();
@@ -513,14 +556,21 @@ int main(int, char **) {
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
+        pass_everything_lambda(object_shader);
+
         object_shader.set_uniform("u_m", glm::value_ptr(tent_model));
         object_shader.set_uniform("u_mvp", glm::value_ptr(tent_mvp));
         object_shader.set_uniform<float>("u_tile", 1, 1);
-        pass_everything_lambda(object_shader);
         // object_shader.set_uniform("background_light", 0.7f, 0.7f, 0.7f);
 
         for (Mesh &mesh : tent_meshes) {
             mesh.draw(object_shader);
+        }
+
+        object_shader.set_uniform("u_m", glm::value_ptr(ground_model));
+        object_shader.set_uniform("u_mvp", glm::value_ptr(ground_mvp));
+        for (Mesh *mesh : ground_meshes) {
+            mesh->draw(object_shader);
         }
 
         // draw droplets

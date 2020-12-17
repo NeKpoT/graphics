@@ -28,6 +28,7 @@ void main() {
     int shadow = get_shadow(position);
 
     o_frag_color = sky_grey * (0.7 + 0.5 * get_shadow(position));
+
     float alpha = 1 - texture(u_droplet_tex, texcoord).x;
     
     o_frag_color.a = alpha;
