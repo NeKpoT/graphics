@@ -35,8 +35,6 @@ add_custom_command(TARGET opengl-imgui-sample
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/assets ${PROJECT_BINARY_DIR}/assets
     COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/assets/black_smith/black_smith.obj ${PROJECT_BINARY_DIR}/
     COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/assets/black_smith/black_smith.mtl ${PROJECT_BINARY_DIR}/
-    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/assets/bonsai/bonsai-tree.obj ${PROJECT_BINARY_DIR}/
-    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/assets/bonsai/bonsai-tree.mtl ${PROJECT_BINARY_DIR}/
 )
 
 target_compile_definitions(opengl-imgui-sample PUBLIC IMGUI_IMPL_OPENGL_LOADER_GLEW)
