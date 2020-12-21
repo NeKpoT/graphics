@@ -10,8 +10,8 @@ uniform vec3 camera_position;
 uniform vec3 camera_forward;
 uniform mat4 u_mvp;
 
-uniform float width = 0.005;
-uniform float height = 0.2;
+uniform float width;
+uniform float height;
 
 uniform mat4 u_height_view;
 uniform sampler2D u_height_tex;

@@ -82,12 +82,12 @@ void load_image(GLuint &texture, const char* filename, bool flip_vertically) {
 
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
-    if (channels == 4) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-    }
-    else {
+    // if (channels == 4) {
+    //     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+    // }
+    // else {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
-    }
+    // }
     glGenerateMipmap(GL_TEXTURE_2D);
 
     stbi_image_free(image);
