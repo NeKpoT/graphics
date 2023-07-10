@@ -681,7 +681,7 @@ int main(int, char **) {
             shader.set_uniform("pd_depth", 11);
             shader.set_uniform("pd_vp", glm::value_ptr(torch_shadow.view));
 
-            shader.set_uniform("background_light", glm::vec3(1, 1, 1) * 0.4f);
+            shader.set_uniform("background_light", glm::vec3(1, 1, 1) * 0.9f);
         };
 
         moon_shader.set_uniform<float>("u_tile", tile_x, tile_y);
